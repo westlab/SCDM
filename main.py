@@ -2,7 +2,7 @@ import argparse
 import configparser
 
 description = """
-Rest server for Docker and service-processes manegement
+Rest server for Smart Community Docker Manger
 """
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
