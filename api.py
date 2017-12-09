@@ -1,5 +1,4 @@
 from flask import Blueprint, request, json, Response
-
 from docker_api.wrapper import DockerWrapper
 
 v1 = Blueprint('v1', __name__)
@@ -26,3 +25,15 @@ def build():
 @v1.route('/docker/run', methods=['POST'])
 def run():
     image_id = request.form['image_id']
+
+
+@v1.route('/docker/migrate', methods=['GET'])
+def migrate():
+    #dst_addr = request.from['dst_addr']
+    #service_id = request.from['service_id']
+    wrapper.migrate()
+    return Response(json.dumps({'message': 'migration done'}),
+                    status=200,
+                    mimetype='application/json'
+                    )
+
