@@ -1,0 +1,10 @@
+from xmlrpc.server import SimpleXMLRPCServer
+
+def serve(addr, port):
+    server = SimpleXMLRPCServer((addr, port))
+    server.register_function(hello, 'hello')
+    server.serve_forever()
+
+def hello():
+    return 'Hello, World.'
+
