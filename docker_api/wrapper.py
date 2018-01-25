@@ -1,8 +1,6 @@
 # doc https://docker-py.readthedocs.io/en/stable/
 import docker
 import xmlrpc.client
-import os
-#from pathlib import Path
 
 class DockerWrapper:
     def __init__(self):
@@ -15,6 +13,7 @@ class DockerWrapper:
                                           dockerfile=filename)
         return dict(image_id=image.short_id)
 
+    # TODO: SSLへの対応が今後必要となる。
     def migrate(self):
         """execute migration from src to dst"""
         rpc_client = xmlrpc.client.ServerProxy("http://localhost:24002/")

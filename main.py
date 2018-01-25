@@ -7,7 +7,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('server'),
+                    choices=('rest', 'rpc'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
@@ -28,6 +28,15 @@ def rest_server():
     app.register_blueprint(v1, url_prefix='/v1')
     app.run(port=port, debug=debug)
 
+def rpc_server():
+    import rpc_server
+
+    port = config.getint('rpc_server', 'port')
+    addr = "localhost"
+    rpc_server.serve(addr, port)
+
 if __name__ == "__main__":
-    if args.program == 'server':
+    if args.program == 'rest':
         rest_server()
+    if args.program == 'rpc':
+        rpc_server()
