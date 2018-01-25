@@ -1,8 +1,8 @@
 from flask import Blueprint, request, json, Response
-from docker_api.wrapper import DockerWrapper
+from tool.docker_api import DockerApi
 
 v1 = Blueprint('v1', __name__)
-wrapper = DockerWrapper()
+wrapper = DockerApi()
 
 @v1.route("/test")
 def test():

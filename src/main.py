@@ -1,4 +1,5 @@
 import argparse
+
 import configparser
 
 description = """
@@ -18,7 +19,7 @@ config.read(args.conf)
 
 def rest_server():
     from flask import Flask
-    from api import v1
+    from service.api import v1
 
     port = config.getint('rest_server', 'port')
     debug = config.getboolean('rest_server','debug')
@@ -29,7 +30,7 @@ def rest_server():
     app.run(port=port, debug=debug)
 
 def rpc_server():
-    import rpc_server
+    from service import rpc_server
 
     port = config.getint('rpc_server', 'port')
     addr = "localhost"

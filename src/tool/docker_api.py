@@ -2,10 +2,10 @@
 import docker
 import xmlrpc.client
 
-class DockerWrapper:
+class DockerApi:
     def __init__(self):
         self._client = docker.from_env()
-        self._base_path = './docker_api/dockerfiles'
+        self._base_path = './tool/dockerfiles'
 
     def build(self, filename):
         # fileがない場合は、status: 400を返す
