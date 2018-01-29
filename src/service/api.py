@@ -1,11 +1,14 @@
 from flask import Blueprint, request, json, Response
 from tool.docker_api import DockerApi
+from tool.logger_factory import LoggerFactory
 
 v1 = Blueprint('v1', __name__)
 wrapper = DockerApi()
+logger = LoggerFactory.create_logger(DockerApi)
 
 @v1.route("/test")
 def test():
+    logger.info('hello')
     return "hello from api.py"
 
 @v1.route("/docker/build", methods=['POST'])
