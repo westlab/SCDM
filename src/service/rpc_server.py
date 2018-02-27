@@ -5,6 +5,7 @@ def serve(addr, port):
     server.register_function(hello, 'hello')
     server.serve_forever()
 
+# rpcのfunctoionが必要となる
 def hello():
     return 'Hello, World.'
 
