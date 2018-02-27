@@ -1,5 +1,4 @@
 import argparse
-
 import configparser
 
 description = """
@@ -27,7 +26,7 @@ def rest_server():
     app = Flask(__name__)
     # create url prefix for corresponding docker api
     app.register_blueprint(v1, url_prefix='/v1')
-    app.run(port=port, debug=debug)
+    app.run(port=port, debug=debug, processes=3)
 
 def rpc_server():
     from service import rpc_server

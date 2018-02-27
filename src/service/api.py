@@ -1,8 +1,9 @@
 from flask import Blueprint, request, json, Response
 from tool.docker_api import DockerApi
+from tool.migration_worker import MigrationWorker
 
 v1 = Blueprint('v1', __name__)
-wrapper = DockerApi()
+docker_api = DockerApi()
 
 @v1.route("/test")
 def test():
@@ -12,7 +13,7 @@ def test():
 def build():
     filename = request.form['filename']
     if filename:
-        data = wrapper.build(filename)
+        data = docker_api.build(filename)
         return Response(json.dumps(data),
                         mimetype='application/json',
                         )
@@ -26,14 +27,18 @@ def build():
 def run():
     image_id = request.form['image_id']
 
-
-@v1.route('/docker/migrate', methods=['GET'])
+# TODO: 非同期にするかどうか/同期型にするかどうか
+# いまの状態では同期とする
+# そのためmigration workerは別プロセスではなく同じプロセスで処理を行う
+@v1.route('/docker/migrate', methods=['POST'])
 def migrate():
-    #dst_addr = request.from['dst_addr']
-    #service_id = request.from['service_id']
-    wrapper.migrate()
-    return Response(json.dumps({'message': 'migration done'}),
-                    status=200,
+    image_name = request.form['image_name']
+    dst_addr = request.form['dst_addr']
+
+    migration_worker = MigrationWorker(image_name, dst_addr)
+    migration_worker.start()
+
+    return Response(json.dumps({'message': 'Accepted'}),
+                    status=202,
                     mimetype='application/json'
                     )
-
