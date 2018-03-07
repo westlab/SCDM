@@ -22,8 +22,7 @@ class DockerBaseApi:
             is_success = self._client.login(username=config['account']['username'],
                                             password=config['account']['password'],
                                             email=config['account']['email'])
-            print(is_success)
-            return True
+            return True if is_success is not None else False
         except docker.errors.APIError:
             print("Given account information is Unauthorized")
             return False
