@@ -1,18 +1,28 @@
 from flask import Blueprint, request, json, Response
 from tool.docker_api import DockerApi
-from tool.migration_worker import MigrationWorker
 
 v1 = Blueprint('v1', __name__)
 docker_api = DockerApi()
 
 @v1.route("/test")
 def test():
+    #print(docker_api.fetch_image("mysql", "5.7"))
+    print(docker_api.inspect_material("mysql", "5.5", "cr_tes"))
     return "hello from api.py"
 
 @v1.route("/docker/check", methods=['GET'])
 def check():
     is_alive = docker_api.ping()
     return Response(json.dumps({'server': is_alive}),
+                    mimetype='application/json')
+
+@v1.route("/docker/inspect", methods=['GET'])
+def inspect():
+    image_name = request.args.get('image_name')
+    version = request.args.get('version')
+    container_name = request.args.get('container_name')
+    data = docker_api.inspect_material(image_name, version, container_name)
+    return Response(json.dumps(data),
                     mimetype='application/json')
 
 @v1.route("/docker/build", methods=['POST'])
@@ -28,10 +38,6 @@ def build():
                         status=400,
                         mimetype='application/json'
                         )
-
-@v1.route('/docker/run', methods=['POST'])
-def run():
-    image_id = request.form['image_id']
 
 # TODO: 非同期にするかどうか/同期型にするかどうか
 # いまの状態では同期とする
