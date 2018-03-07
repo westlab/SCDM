@@ -1,25 +1,26 @@
-# doc https://docker-py.readthedocs.io/en/stable/
 import docker
 
-class DockerApi:
+from tool.docker_base_api import DockerBaseApi
+
+class DockerApi(DockerBaseApi):
     def __init__(self):
-        self._client = docker.from_env()
-        self._base_path = './tool/dockerfiles'
+        super().__init__()
 
-    # TODO: dockerfileからの生成を行わないので修正する必要あり
-    def build(self, filename):
-        # fileがない場合は、status: 400を返す
-        image = self._client.images.build(path=self._base_path,
-                                          dockerfile=filename)
-        return dict(image_id=image.short_id)
+    """
+    Fetch an image based on given arguments
+    If host hasn't the image, host will pull the image through Dockerhub
 
-    # inspect own image state by image_name
-    def inspect(self, image_name):
-        print("inspect")
-
-    def checkpoint(self):
-        print('checkpoint')
-
-    def restore(self):
-        print('restore')
-
+    @params String name
+    @params String version=latest
+    @return Image
+    """
+    def fetch_image(self, name, version="latest"):
+        image = self.image_presence(name, version)
+        if image is None:
+            try:
+                pulled_image  = self.pull(name, version)
+                return pulled_image
+            except docker.errors.APIError:
+                return None
+        else:
+            return image
