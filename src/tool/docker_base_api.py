@@ -28,6 +28,14 @@ class DockerBaseApi:
             return False
 
     """
+    Check whether docker server is running
+
+    @return True|False
+    """
+    def ping(self):
+        return self._client.ping()
+
+    """
     Pull docker image based on given two arguments
 
     @params String name
