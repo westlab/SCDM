@@ -23,4 +23,16 @@ class DockerApi(DockerBaseApi):
             except docker.errors.APIError:
                 return None
         else:
+            # already exist the image in local
             return image
+
+    """
+    Inspect an image and a container based on i_name and c_name
+
+    @params String i_name(image_name), c_name(container_name)
+    @params String version
+    @return dict{"image": Boolean, "container": Boolean}
+    """
+    def inspect_material(self, i_name, version, c_name):
+        return {"image": self.image_present(i_name, version),
+                "container": self.container_present(c_name)}
