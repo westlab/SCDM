@@ -9,6 +9,12 @@ docker_api = DockerApi()
 def test():
     return "hello from api.py"
 
+@v1.route("/docker/check", methods=['GET'])
+def check():
+    is_alive = docker_api.ping()
+    return Response(json.dumps({'server': is_alive}),
+                    mimetype='application/json')
+
 @v1.route("/docker/build", methods=['POST'])
 def build():
     filename = request.form['filename']
