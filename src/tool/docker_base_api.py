@@ -41,24 +41,6 @@ class DockerBaseApi:
 
     """
     Check whether specific image exists,
-    and return True or False
-
-    @params String name
-    @params String version="latest"
-    @return True|False
-    """
-    def image_present(self, name, version="latest"):
-        name_and_ver = self.name_converter(name, version)
-        try:
-            image = self._client.images.get(name_and_ver)
-            return True
-        except docker.errors.ImageNotFound:
-            return False
-        except docker.errors.APIError:
-            return False
-
-    """
-    Check whether specific image exists,
     and return the image or None
 
     @params String name
@@ -68,10 +50,52 @@ class DockerBaseApi:
     def image_presence(self, name, version="latest"):
         name_and_ver = self.name_converter(name, version)
         try:
-            image = self._client.images.get(name_and_ver)
-            return image
+            return self._client.images.get(name_and_ver)
         except docker.errors.ImageNotFound:
             return None
+
+    """
+    Check whether specific image exists,
+    and return True or False
+
+    @params String name
+    @params String version="latest"
+    @return True|False
+    """
+    def image_present(self, name, version="latest"):
+        name_and_ver = self.name_converter(name, version)
+        try:
+            i = self._client.images.get(name_and_ver)
+            return True if i is not None else False
+        except docker.errors.ImageNotFound:
+            return False
+
+    """
+    Check whether specific container exists,
+    and return Container or None
+
+    @params String name
+    @return Containers|NoneType
+    """
+    def container_presence(self, name):
+        try:
+            return self._client.containers.get(name)
+        except docker.errors.ImageNotFound:
+            return None
+
+    """
+    Check whether specific container exists,
+    and return True or False
+
+    @params String name
+    @return True|False
+    """
+    def container_present(self, name):
+        try:
+            c = self._client.containers.get(name)
+            return True if c is not None else False
+        except docker.errors.NotFound:
+            return False
 
     """
     Convert name with version along with docker-py
