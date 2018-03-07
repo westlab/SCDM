@@ -1,5 +1,6 @@
 # Own Setting
-.idea/
+.idea
+conf/docker_hub.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
