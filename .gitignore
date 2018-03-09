@@ -2,6 +2,10 @@
 .idea
 conf/docker_hub.ini
 
+# needless file created by gRPC
+src/tool/gRPC/helloworld_pb2.py
+src/tool/gRPC/helloworld_pb2_grpc.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
