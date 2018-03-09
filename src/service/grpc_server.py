@@ -2,14 +2,30 @@ from concurrent import futures
 import grpc
 import time
 
+from tool.docker_api import DockerApi
+
 import tool.gRPC.docker_migration_pb2 as docker_migration_pb2
 import tool.gRPC.docker_migration_pb2_grpc as docker_migration_pb2_grpc
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
-    def SayHello(self, request, context):
-        return docker_migration_pb2.HelloReply(message='Hello, %s!' % request.name)
+    """
+    Provides methods that implement functionality of docker migration server.
+    """
+    def __init__(self):
+        self._cli = DockerApi()
+
+    """
+    Notify whether Dockerd is running or not
+    Returns 0 if the server is running, but 122(errrno: Host is down) if not running.
+
+    @params request
+    @params context
+    """
+    def PingDockerServer(self, request, context):
+        status_code = 0 if self._cli.ping() is True else 112
+        return docker_migration_pb2.Status(code=status_code)
 
 """
 Start gRPC server based on given addr and port number.
