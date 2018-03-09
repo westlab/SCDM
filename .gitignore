@@ -3,8 +3,8 @@
 conf/docker_hub.ini
 
 # needless file created by gRPC
-src/tool/gRPC/helloworld_pb2.py
-src/tool/gRPC/helloworld_pb2_grpc.py
+src/tool/gRPC/docker_migration_pb2.py
+src/tool/gRPC/docker_migration_pb2_grpc.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
