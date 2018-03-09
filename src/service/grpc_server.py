@@ -21,10 +21,36 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     Returns 0 if the server is running, but 122(errrno: Host is down) if not running.
 
     @params request
-    @params context
+    @return Status(Integer code)
     """
     def PingDockerServer(self, request, context):
+        print("PingDockerServer")
         status_code = 0 if self._cli.ping() is True else 112
+        return docker_migration_pb2.Status(code=status_code)
+
+    """
+    Request migration from src node to dst node
+    Returns status code when inspecting image
+    and container situation and finishing download the image
+    , and starting the container.
+
+    @params DockerSummary(String image_name,
+                          String version,
+                          String container_image)
+    @return Status(Integer code)
+    """
+    def RequestMigration(self, request, context):
+        print("RequestMigration")
+        status_code = 0
+        return docker_migration_pb2.Status(code=status_code)
+
+    """
+    Send checkpoint data from src to dst node
+    Returns status code for representing finish of restoring an app
+    """
+    def SendCheckpoint(self, request, context):
+        print("SendCheckpoint")
+        status_code = 0
         return docker_migration_pb2.Status(code=status_code)
 
 """

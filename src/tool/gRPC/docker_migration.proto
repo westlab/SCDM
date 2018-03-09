@@ -7,8 +7,8 @@ service  DockerMigrator {
     // Sends a greeting
     //rpc SayHello (HelloRequest) returns (HelloReply) {}
     rpc PingDockerServer(Signal) returns (Status) {}
-    //rpc RequestMigration (DockerSummary) returns (Status) {}
-    //rpc SendCheckpoint (CheckPointSummary) returns (Status) {}
+    rpc RequestMigration (DockerSummary) returns (Status) {}
+    rpc SendCheckpoint (CheckpointSummary) returns (Status) {}
 }
 
 // A DockerSummary is a message
