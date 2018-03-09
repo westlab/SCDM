@@ -7,7 +7,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('rest', 'rpc'),
+                    choices=('rest', 'rpc', 'codegen', 'client'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
@@ -29,14 +29,28 @@ def rest_server():
     app.run(port=port, debug=debug, processes=3)
 
 def rpc_server():
-    from service import rpc_server
+    from service import grpc_server
 
     port = config.getint('rpc_server', 'port')
     addr = "localhost"
-    rpc_server.serve(addr, port)
+    #grpc_server.serve(addr, port)
+    grpc_server.serve()
+
+
+def rpc_client():
+    from tool.gRPC import grpc_client
+    grpc_client.run()
+
+def codegen():
+    from service import codegen
+    codegen.run()
 
 if __name__ == "__main__":
     if args.program == 'rest':
         rest_server()
     if args.program == 'rpc':
         rpc_server()
+    if args.program == 'codegen':
+        codegen()
+    if args.program == 'client':
+        rpc_client()
