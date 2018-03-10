@@ -4,11 +4,12 @@ package docker_migration;
 
 // The docker migration service definition
 service  DockerMigrator {
-    // Sends a greeting
-    //rpc SayHello (HelloRequest) returns (HelloReply) {}
+    // A simple RPC
     rpc PingDockerServer(Signal) returns (Status) {}
-    rpc RequestMigration (DockerSummary) returns (Status) {}
-    rpc SendCheckpoint (CheckpointSummary) returns (Status) {}
+
+    // A server-to-client streaming RPC
+    rpc RequestMigration (DockerSummary) returns (stream Status) {}
+    rpc SendCheckpoint (CheckpointSummary) returns (stream Status) {}
 }
 
 // A DockerSummary is a message

@@ -41,8 +41,10 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def RequestMigration(self, request, context):
         print("RequestMigration")
-        status_code = 0
-        return docker_migration_pb2.Status(code=status_code)
+        status_codes = [0, 1, 2]
+        for code in status_codes:
+            print("hey")
+            yield docker_migration_pb2.Status(code=code)
 
     """
     Send checkpoint data from src to dst node
@@ -50,8 +52,9 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def SendCheckpoint(self, request, context):
         print("SendCheckpoint")
-        status_code = 0
-        return docker_migration_pb2.Status(code=status_code)
+        status_codes = [0, 1]
+        for code in status_codes:
+            yield docker_migration_pb2.Status(code=code)
 
 """
 Start gRPC server based on given addr and port number.
