@@ -1,0 +1,47 @@
+syntax="proto3";
+
+package docker_migration;
+
+// The docker migration service definition
+service  DockerMigrator {
+    // A simple RPC
+    rpc PingDockerServer(Signal) returns (Status) {}
+
+    // A server-to-client streaming RPC
+    rpc RequestMigration (DockerSummary) returns (stream Status) {}
+    rpc SendCheckpoint (CheckpointSummary) returns (stream Status) {}
+}
+
+// A DockerSummary is a message
+// It contains the base docker image name and version, and container name
+message DockerSummary {
+    string image_name = 1;
+    string version = 2;
+    string container_name = 3;
+}
+
+// A Ping is a message for asking
+// whether the dockerd is runing or not
+// It containts a name.
+message Signal {
+    string name = 1;
+}
+
+// A Status is reviceived in responce to a Request from sth rpc
+message Status {
+    // The number represents wether the request is done successfully or not
+    // 0 means success
+    // a number other than 0 means fail by a reason that is refered by error code.
+    int32 code = 1;
+}
+
+// A Checkpoint is mesage after creating checkpoint on src node
+// It contains cp_name, which represents checkpoint dir name,
+// and cp_path, which represents a path of checkpoint dir.
+message CheckpointSummary {
+    // Cp_name represents checkpoint dir name
+    string cp_name = 1;
+    // path represents path of checkpoint dir
+    string cp_path = 2;
+}
+

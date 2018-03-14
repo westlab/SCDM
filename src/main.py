@@ -33,9 +33,7 @@ def rpc_server():
 
     port = config.getint('rpc_server', 'port')
     addr = "localhost"
-    #grpc_server.serve(addr, port)
-    grpc_server.serve()
-
+    grpc_server.serve(addr, port)
 
 def rpc_client():
     from tool.gRPC import grpc_client
