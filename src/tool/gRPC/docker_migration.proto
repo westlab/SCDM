@@ -17,7 +17,20 @@ service  DockerMigrator {
 message DockerSummary {
     string image_name = 1;
     string version = 2;
-    string container_name = 3;
+    ContainerOptions options = 3;
+}
+
+// A ContainerOptoin summarizes docker creation/running options
+// It contains the base docker options like cotnainer name, port, and sth.
+message ContainerOptions {
+    string container_name = 1;
+    Port port = 2;
+    //TODO: additional options such as volumes, shm_size...etc...
+}
+
+message Port {
+    int32 host = 1;
+    int32 container = 2;
 }
 
 // A Ping is a message for asking
