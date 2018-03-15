@@ -1,7 +1,9 @@
 from concurrent import futures
 import grpc
 import time
+import os
 
+from settings.custom_status_code import SUCCESS, HAS_IMAGE, NO_IMAGE
 from tool.docker_api import DockerApi
 
 import tool.gRPC.docker_migration_pb2 as docker_migration_pb2
@@ -25,14 +27,14 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def PingDockerServer(self, request, context):
         print("PingDockerServer")
-        status_code = 0 if self._cli.ping() is True else 112
+        status_code = SUCCESS if self._cli.ping() is True else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=status_code)
 
     """
-    Request migration from src node to dst node
-    Returns status code when inspecting image
-    and container situation and finishing download the image
-    , and starting the container.
+    Request migration from src node to dst node following tasks:
+    1. Inspect local image and container belongings, and Return results
+    2. Fetch Image if host has not the image
+    3. Create the container from the image with given options
 
     @params DockerSummary(String image_name,
                           String version,
@@ -41,16 +43,18 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def RequestMigration(self, req, context):
         print("RequestMigration")
-        # TODO: return first sth
         result = self._cli.inspect_material(i_name=req.image_name,
                                             version=req.version,
                                             c_name=req.container_name)
-
-        second_code = 0 if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else 112
+        # Inspect local image and container belongings
+        first_code = HAS_IMAGE if result['image'] is True else NO_IMAGE
+        yield  docker_migration_pb2.Status(code=first_code)
+        # Fetch the Image if host has not the image
+        second_code = SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=second_code)
-
-        c = self._cli.create(name=req.image_name, c_name=req.container_name, version=req.version)
-        third_code = 0 if c is not None else 112
+        # Create the container from the image with given options
+        c = self._cli.create(i_name=req.image_name, c_name=req.container_name, version=req.version)
+        third_code = SUCCESS if c is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=third_code)
 
     """
