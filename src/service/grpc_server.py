@@ -11,6 +11,22 @@ import tool.gRPC.docker_migration_pb2_grpc as docker_migration_pb2_grpc
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
+"""
+Convert ContainerOptions to dict
+for making easy to pass variable to next functon
+
+@params ContainerOptions options
+        (referred to ./tool/gRPC/docker_migration.proto)
+@return dict (name, port)
+"""
+def dict_conveter(options):
+    # O means that a developer does not specify a port number
+    dict = {
+        'name': options.container_name,
+        'port': {'host': options.port.host, 'container': options.port.container} if options.port is not 0 else None,
+    }
+    return dict
+
 class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     Provides methods that implement functionality of docker migration server.
@@ -45,7 +61,8 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         print("RequestMigration")
         result = self._cli.inspect_material(i_name=req.image_name,
                                             version=req.version,
-                                            c_name=req.container_name)
+                                            c_name=req.options.container_name)
+        options = dict_conveter(req.options)
         # Inspect local image and container belongings
         first_code = HAS_IMAGE if result['image'] is True else NO_IMAGE
         yield  docker_migration_pb2.Status(code=first_code)
@@ -53,7 +70,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         second_code = SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=second_code)
         # Create the container from the image with given options
-        c = self._cli.create(i_name=req.image_name, c_name=req.container_name, version=req.version)
+        c = self._cli.create(req.image_name, options, req.version)
         third_code = SUCCESS if c is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=third_code)
 

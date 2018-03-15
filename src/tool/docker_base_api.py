@@ -110,14 +110,14 @@ class DockerBaseApi:
     and basic options
 
     @params String i_name
-    @params String c_name
     @params String version="latest"
+    @params dict options(port, container_name)
     @return Container|None
     """
-    def create(self, i_name, c_name, version="latest"):
+    def create(self, i_name, options, version="latest"):
         name_and_ver = self.name_converter(i_name, version)
-        #TODO: Add options (name, mount options, port)
-        options = self.container_option()
+        options = self.container_option(options)
+        print(options)
         try:
             container = self._client.containers.create(name_and_ver, **options)
             return container
@@ -144,21 +144,35 @@ class DockerBaseApi:
         return name + ':' + version
 
     """
+    Convert prot with protocol along with docker-py
+
+    @params Integer port
+    @params String protocol='tcp'
+    @return String
+    """
+    def port_protocol_converter(self, port, protocol='tcp'):
+        return str(port) + '/' + protocol
+
+    """
     Return default options of container initialization based on docker_settings
     The options include container default name and defaultmounting dir, and ipc_mode
 
-    @params None
+    @params dict options(name, port(host, container))
     @return dict
     """
-    def container_option(self):
-        volumes = {}
+    def container_option(self, options):
+        print("container_options")
+        #set default values
         config = configparser.ConfigParser()
         config.read(DockerBaseApi.DOCKER_BASIC_SETTINGS)
         tmp_dir = config['container']['volume_tmp_dir']
-        volumes[tmp_dir] = {'bind': tmp_dir, 'mode': 'rw'}
-        return dict(name=config['container']['default_c_name'],
-                    volumes=volumes,
-                    ipc_mode=config['container']['ipc_namespace'])
+        volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
+        # set user defined values
+        dict = { 'volumes': volumes,'ipc_mode': config['container']['ipc_namespace']}
+        dict['name'] = options['name'] if options['name'] is not None else config['container']['default_name']
+        if options['port'] is not None:
+            dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
+        return dict
 
     # TODO: dockerfileからの生成を行わないので修正する必要あり
     # のちのちasynchronous
