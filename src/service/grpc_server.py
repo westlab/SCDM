@@ -75,11 +75,11 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         yield docker_migration_pb2.Status(code=third_code)
 
     """
-    Send checkpoint data from src to dst node
-    Returns status code for representing finish of restoring an app
+    Check checkpoint data sent from src to dst node
+    and restore a container with the checkpoint
     """
-def SendCheckpoint(self, request, context):
-        print("SendCheckpoint")
+    def RestoreContainer(self, request, context):
+        print("RestoreContainer")
         status_codes = [0, 1]
         for code in status_codes:
             yield docker_migration_pb2.Status(code=code)
