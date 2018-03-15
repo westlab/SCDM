@@ -4,6 +4,7 @@ import configparser
 
 class DockerBaseApi:
     DOCKER_HUB_SETTING_FILE = "./conf/docker_hub.ini"
+    DOCKER_BASIC_SETTINGS ="./conf/docker_settings.ini"
 
     def __init__(self):
         self._client = docker.from_env()
@@ -105,6 +106,33 @@ class DockerBaseApi:
             return False
 
     """
+    Create Docker container specified name and tag,
+    and basic options
+
+    @params String i_name
+    @params String version="latest"
+    @params dict options(port, container_name)
+    @return Container|None
+    """
+    def create(self, i_name, options, version="latest"):
+        name_and_ver = self.name_converter(i_name, version)
+        options = self.container_option(options)
+        print(options)
+        try:
+            container = self._client.containers.create(name_and_ver, **options)
+            return container
+        except docker.errors.ImageNotFound:
+            return None
+        except docker.errors.APIError:
+            return None
+
+    def checkpoint(self):
+        print("checkpoint")
+
+    def restore(self):
+        print("restore")
+
+    """
     Convert name with version along with docker-py
     based on given two arguments
 
@@ -115,14 +143,36 @@ class DockerBaseApi:
     def name_converter(self, name, version):
         return name + ':' + version
 
-    def run(self):
-        print('run')
+    """
+    Convert prot with protocol along with docker-py
 
-    def checkpoint(self):
-        print("checkpoint")
+    @params Integer port
+    @params String protocol='tcp'
+    @return String
+    """
+    def port_protocol_converter(self, port, protocol='tcp'):
+        return str(port) + '/' + protocol
 
-    def restore(self):
-        print("restore")
+    """
+    Return default options of container initialization based on docker_settings
+    The options include container default name and defaultmounting dir, and ipc_mode
+
+    @params dict options(name, port(host, container))
+    @return dict
+    """
+    def container_option(self, options):
+        print("container_options")
+        #set default values
+        config = configparser.ConfigParser()
+        config.read(DockerBaseApi.DOCKER_BASIC_SETTINGS)
+        tmp_dir = config['container']['volume_tmp_dir']
+        volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
+        # set user defined values
+        dict = { 'volumes': volumes,'ipc_mode': config['container']['ipc_namespace']}
+        dict['name'] = options['name'] if options['name'] is not None else config['container']['default_name']
+        if options['port'] is not None:
+            dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
+        return dict
 
     # TODO: dockerfileからの生成を行わないので修正する必要あり
     # のちのちasynchronous
