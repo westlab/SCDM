@@ -112,11 +112,11 @@ class DockerBaseApi:
     @params String i_name
     @params String c_name
     @params String version="latest"
-    TODO: Add options (volume, ipc, d)
     @return Container|None
     """
     def create(self, i_name, c_name, version="latest"):
         name_and_ver = self.name_converter(i_name, version)
+        #TODO: Add options (name, mount options, port)
         options = self.container_option()
         try:
             container = self._client.containers.create(name_and_ver, **options)
@@ -143,9 +143,9 @@ class DockerBaseApi:
     def name_converter(self, name, version):
         return name + ':' + version
 
-
     """
-    Return default options of container initialization
+    Return default options of container initialization based on docker_settings
+    The options include container default name and defaultmounting dir, and ipc_mode
 
     @params None
     @return dict
@@ -159,7 +159,6 @@ class DockerBaseApi:
         return dict(name=config['container']['default_c_name'],
                     volumes=volumes,
                     ipc_mode=config['container']['ipc_namespace'])
-
 
     # TODO: dockerfileからの生成を行わないので修正する必要あり
     # のちのちasynchronous
