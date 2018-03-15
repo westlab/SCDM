@@ -36,21 +36,28 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
 
     @params DockerSummary(String image_name,
                           String version,
-                          String container_image)
+                          String container_name)
     @return Status(Integer code)
     """
-    def RequestMigration(self, request, context):
+    def RequestMigration(self, req, context):
         print("RequestMigration")
-        status_codes = [0, 1, 2]
-        for code in status_codes:
-            print("hey")
-            yield docker_migration_pb2.Status(code=code)
+        # TODO: return first sth
+        result = self._cli.inspect_material(i_name=req.image_name,
+                                            version=req.version,
+                                            c_name=req.container_name)
+
+        second_code = 0 if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else 112
+        yield docker_migration_pb2.Status(code=second_code)
+
+        c = self._cli.create(name=req.image_name, c_name=req.container_name, version=req.version)
+        third_code = 0 if c is not None else 112
+        yield docker_migration_pb2.Status(code=third_code)
 
     """
     Send checkpoint data from src to dst node
     Returns status code for representing finish of restoring an app
     """
-    def SendCheckpoint(self, request, context):
+def SendCheckpoint(self, request, context):
         print("SendCheckpoint")
         status_codes = [0, 1]
         for code in status_codes:

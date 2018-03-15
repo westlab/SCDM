@@ -4,6 +4,7 @@ import configparser
 
 class DockerBaseApi:
     DOCKER_HUB_SETTING_FILE = "./conf/docker_hub.ini"
+    DOCKER_BASIC_SETTINGS ="./conf/docker_settings.ini"
 
     def __init__(self):
         self._client = docker.from_env()
@@ -105,6 +106,33 @@ class DockerBaseApi:
             return False
 
     """
+    Create Docker container specified name and tag,
+    and basic options
+
+    @params String i_name
+    @params String c_name
+    @params String version="latest"
+    TODO: Add options (volume, ipc, d)
+    @return Container|None
+    """
+    def create(self, i_name, c_name, version="latest"):
+        name_and_ver = self.name_converter(i_name, version)
+        options = self.container_option()
+        try:
+            container = self._client.containers.create(name_and_ver, **options)
+            return container
+        except docker.errors.ImageNotFound:
+            return None
+        except docker.errors.APIError:
+            return None
+
+    def checkpoint(self):
+        print("checkpoint")
+
+    def restore(self):
+        print("restore")
+
+    """
     Convert name with version along with docker-py
     based on given two arguments
 
@@ -115,14 +143,23 @@ class DockerBaseApi:
     def name_converter(self, name, version):
         return name + ':' + version
 
-    def run(self):
-        print('run')
 
-    def checkpoint(self):
-        print("checkpoint")
+    """
+    Return default options of container initialization
 
-    def restore(self):
-        print("restore")
+    @params None
+    @return dict
+    """
+    def container_option(self):
+        volumes = {}
+        config = configparser.ConfigParser()
+        config.read(DockerBaseApi.DOCKER_BASIC_SETTINGS)
+        tmp_dir = config['container']['volume_tmp_dir']
+        volumes[tmp_dir] = {'bind': tmp_dir, 'mode': 'rw'}
+        return dict(name=config['container']['default_c_name'],
+                    volumes=volumes,
+                    ipc_mode=config['container']['ipc_namespace'])
+
 
     # TODO: dockerfileからの生成を行わないので修正する必要あり
     # のちのちasynchronous
