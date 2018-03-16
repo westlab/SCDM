@@ -19,7 +19,7 @@ def test2():
     addr = '10.24.128.193'
     cp_name = 'checkpoint'
     worker = MigrationWorker(cp_name=cp_name, dst_addr=addr)
-    is_success = worker.rsync()
+    is_success = worker.start()
     print(is_success)
     return "hello from api.py"
 
