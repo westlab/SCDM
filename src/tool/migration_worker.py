@@ -2,16 +2,17 @@ import subprocess as sp
 import configparser
 
 from tool.gRPC import grpc_client
-from settings.docker import DOCKER_BASIC_SETTINGS_PATH
+from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
+from tool.docker_api import DockerApi
 
 class MigrationWorker:
-    def __init__(self, i_name, cp_name, dst_addr, service_id=0):
+    def __init__(self, cp_name, dst_addr):
         config = configparser.ConfigParser()
-        self._config = config.read(DOCKER_BASIC_SETTINGS_PATH)
-        self._i_name = i_name
+        config.read(DOCKER_BASIC_SETTINGS_PATH)
+        self._config = config
         self._dst_addr = dst_addr
         self._cp_name =  cp_name
-        self._service_id = service_id
+        self._cli = DockerApi()
 
     """
     Start migration-worker for migrating Docker App based on the following tasks
@@ -31,11 +32,15 @@ class MigrationWorker:
 
     @return True|False
     """
-    #TODO: secure communication
+    #TODO: Find a way to send the fiels with more throughput, and easier way
     def rsync(self):
-        cmd = "rsync -avz {dst}:{cp_path]/{dir_name} {cp_path}/{dir_name}".format(dst=self._dst_addr,
-                                                                                 cp_path=self._config['checkpoint']['default_cp_dir'],
-                                                                                 dir_name=self._cp_name)
+        print('rsync')
+        cre_config = configparser.ConfigParser()
+        cre_config.read(CREDENTIALS_SETTING_PATH)
+        c = self._cli.container_presence('cr_test')
+        # copy all directory under the cp_path, which leads to take time to copy and send files 
+        cp_path = '{0}/{1}/'.format(self._config['checkpoint']['default_cp_dir'])
+        cmd = "sshpass -p {passwd} rsync -avzr -e ssh {cp_path} miura@{dst}:{cp_path}".format(passwd=cre_config['dst_host']['password'], dst=self._dst_addr, cp_path=cp_path)
         try:
             sp.run(cmd.strip().split(" "), check=True)
             return True

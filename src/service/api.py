@@ -16,7 +16,10 @@ def test():
 @v1.route("/test2")
 def test2():
     from tool.migration_worker import MigrationWorker
-    is_success= docker_api.restore("cr_test", "checkpoint")
+    addr = '10.24.128.193'
+    cp_name = 'checkpoint'
+    worker = MigrationWorker(cp_name=cp_name, dst_addr=addr)
+    is_success = worker.rsync()
     print(is_success)
     return "hello from api.py"
 
