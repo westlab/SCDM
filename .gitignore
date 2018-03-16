@@ -1,6 +1,6 @@
 # Own Setting
 .idea
-conf/docker_hub.ini
+conf/credentials.ini
 
 # needless file created by gRPC
 src/tool/gRPC/docker_migration_pb2.py

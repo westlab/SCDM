@@ -1,14 +1,17 @@
 # doc https://docker-py.readthedocs.io/en/stable/
 import docker
 import configparser
+import subprocess as sp
+
+from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
 
 class DockerBaseApi:
-    DOCKER_HUB_SETTING_FILE = "./conf/docker_hub.ini"
-    DOCKER_BASIC_SETTINGS ="./conf/docker_settings.ini"
 
     def __init__(self):
+        config = configparser.ConfigParser()
+        config.read(DOCKER_BASIC_SETTINGS_PATH)
         self._client = docker.from_env()
-        self._base_path = "./tool/dockerfiles"
+        self._basic_config = config
 
     """
     Log in specific Dockerhub repo
@@ -18,7 +21,7 @@ class DockerBaseApi:
     """
     def login(self):
         config = configparser.ConfigParser()
-        config.read(DockerBaseApi.DOCKER_HUB_SETTING_FILE)
+        config.read(CREDENTIALS_SETTING_PATH)
         try:
             is_success = self._client.login(username=config['account']['username'],
                                             password=config['account']['password'],
@@ -86,6 +89,7 @@ class DockerBaseApi:
     @return Containers|NoneType
     """
     def container_presence(self, name):
+        print(name)
         try:
             return self._client.containers.get(name)
         except docker.errors.ImageNotFound:
@@ -126,11 +130,60 @@ class DockerBaseApi:
         except docker.errors.APIError:
             return None
 
-    def checkpoint(self):
-        print("checkpoint")
+    """
+    Checkpoint a running container
 
-    def restore(self):
+    @params String c_name
+    @params String cp_name
+    @params Boolean leave_running
+    @return True|False
+    """
+    def checkpoint(self, c_name, cp_name='checkpoint', leave_running=False):
+        cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
+        try:
+            result = sp.run(cmd.strip().split(" "), check=True)
+            return True
+        except:
+            return False
+
+    """
+    Restore a container from checkpoint data
+
+    @params String c_name
+    @params String cp_name='checkpoint'
+    @return True|False
+    """
+    def restore(self, c_name, cp_name='checkpoint'):
         print("restore")
+        try:
+            c= self.container_presence(c_name)
+            if c is not None:
+                cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
+                cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
+            else:
+                raise
+            retult = sp.run(cmd.strip().split(" "), check=True)
+            return True
+        except:
+            return False
+
+    """
+    Return default options of container initialization based on docker_settings
+    The options include container default name and defaultmounting dir, and ipc_mode
+
+    @params dict options(name, port(host, container))
+    @return dict
+    """
+    def container_option(self, options):
+        print("container_options")
+        tmp_dir = self._basic_config['container']['volume_tmp_dir']
+        volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
+        # set user defined values
+        dict = { 'volumes': volumes,'ipc_mode': self._basic_config['container']['ipc_namespace']}
+        dict['name'] = options['name'] if options['name'] is not None else self._basic_config['container']['default_name']
+        if options['port'] is not None:
+            dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
+        return dict
 
     """
     Convert name with version along with docker-py
@@ -153,27 +206,6 @@ class DockerBaseApi:
     def port_protocol_converter(self, port, protocol='tcp'):
         return str(port) + '/' + protocol
 
-    """
-    Return default options of container initialization based on docker_settings
-    The options include container default name and defaultmounting dir, and ipc_mode
-
-    @params dict options(name, port(host, container))
-    @return dict
-    """
-    def container_option(self, options):
-        print("container_options")
-        #set default values
-        config = configparser.ConfigParser()
-        config.read(DockerBaseApi.DOCKER_BASIC_SETTINGS)
-        tmp_dir = config['container']['volume_tmp_dir']
-        volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
-        # set user defined values
-        dict = { 'volumes': volumes,'ipc_mode': config['container']['ipc_namespace']}
-        dict['name'] = options['name'] if options['name'] is not None else config['container']['default_name']
-        if options['port'] is not None:
-            dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
-        return dict
-
     # TODO: dockerfileからの生成を行わないので修正する必要あり
     # のちのちasynchronous
     def build(self, name, version="latest"):
@@ -182,6 +214,5 @@ class DockerBaseApi:
         # 例外処理
 
         # fileがない場合は、status: 400を返す
-        image = self._client.images.build(path=self._base_path,
-                                          dockerfile=filename)
         return dict(image_id=image.short_id)
+

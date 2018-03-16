@@ -6,8 +6,21 @@ docker_api = DockerApi()
 
 @v1.route("/test")
 def test():
-    #print(docker_api.fetch_image("mysql", "5.7"))
-    print(docker_api.inspect_material("mysql", "5.5", "cr_tes"))
+    from tool.migration_worker import MigrationWorker
+    #print(docker_api.create("busybox", "tatsukitatsuki", "latest"))
+    #migration_worker = MigrationWorker(i_name="busybox", cp_name="checkpoint", dst_addr="10")
+    is_success= docker_api.checkpoint("cr_test", "checkpoint")
+    print(is_success)
+    return "hello from api.py"
+
+@v1.route("/test2")
+def test2():
+    from tool.migration_worker import MigrationWorker
+    addr = '10.24.128.193'
+    cp_name = 'checkpoint'
+    worker = MigrationWorker(cp_name=cp_name, dst_addr=addr)
+    is_success = worker.start()
+    print(is_success)
     return "hello from api.py"
 
 @v1.route("/docker/check", methods=['GET'])

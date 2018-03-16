@@ -1,12 +1,19 @@
-# from multiprocessing import Process
-import xmlrpc.client
-#from tool.docker_api import DockerApi
+#import subprocess as sp
+import configparser
+
+from tool.gRPC import grpc_client
+from settings.docker import DOCKER_BASIC_SETTINGS_PATH
+from tool.docker_api import DockerApi
+from tool.rsync import Rsync
 
 class MigrationWorker:
-    def __init__(self, image_name, dst_addr, service_id=0):
-        self._image_name = image_name
+    def __init__(self, cp_name, dst_addr):
+        config = configparser.ConfigParser()
+        config.read(DOCKER_BASIC_SETTINGS_PATH)
+        self._config = config
         self._dst_addr = dst_addr
-        self._service_id = service_id
+        self._cp_name =  cp_name
+        self._cli = DockerApi()
 
     """
     Start migration-worker for migrating Docker App based on the following tasks
@@ -19,5 +26,27 @@ class MigrationWorker:
     @return True|False
     """
     def start(self):
-        rpc_client = xmlrpc.client.ServerProxy("http://localhost:24002/")
-        print(rpc_client.hello())
+        print("start")
+        c = self._cli.container_presence('cr_test')
+        cp_path = '{0}/{1}/'.format(self._config['checkpoint']['default_cp_dir'], c.id)
+        Rsync.call(cp_path, cp_path, 'miura', src_addr=None, dst_addr=self._dst_addr)
+
+    """
+    Send checkpoint from src to dst host using rsync
+
+    @return True|False
+    """
+    #TODO: Find a way to send the fiels with more throughput, and easier way
+    def rsync(self):
+        print('rsync')
+        cre_config = configparser.ConfigParser()
+        cre_config.read(CREDENTIALS_SETTING_PATH)
+        # copy all directory under the cp_path, which leads to take time to copy and send files 
+        cp_path = '{0}/{1}/'.format(self._config['checkpoint']['default_cp_dir'])
+        cmd = "sshpass -p {passwd} rsync -avzr -e ssh {cp_path} miura@{dst}:{cp_path}".format(passwd=cre_config['dst_host']['password'], dst=self._dst_addr, cp_path=cp_path)
+        try:
+            sp.run(cmd.strip().split(" "), check=True)
+            return True
+        except:
+            return False
+
