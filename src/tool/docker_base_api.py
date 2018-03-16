@@ -3,15 +3,14 @@ import docker
 import configparser
 import subprocess as sp
 
+from settings.docker import DOCKER_BASIC_SETTINGS_PATH, DOCKER_HUB_SETTING_PATH
+
 class DockerBaseApi:
-    DOCKER_HUB_SETTING_FILE = "./conf/docker_hub.ini"
-    DOCKER_BASIC_SETTINGS ="./conf/docker_settings.ini"
 
     def __init__(self):
         config = configparser.ConfigParser()
         self._client = docker.from_env()
-        self._base_path = "./tool/dockerfiles"
-        self._basic_config = config.read(DockerBaseApi.DOCKER_BASIC_SETTINGS)
+        self._basic_config = config.read(DOCKER_BASIC_SETTINGS_PATH)
     """
     Log in specific Dockerhub repo
     based on settings written in docker_hub.ini
@@ -20,7 +19,7 @@ class DockerBaseApi:
     """
     def login(self):
         config = configparser.ConfigParser()
-        config.read(DockerBaseApi.DOCKER_HUB_SETTING_FILE)
+        config.read(DOCKER_HUB_SETTING_PATH)
         try:
             is_success = self._client.login(username=config['account']['username'],
                                             password=config['account']['password'],
@@ -198,6 +197,4 @@ class DockerBaseApi:
         # 例外処理
 
         # fileがない場合は、status: 400を返す
-        image = self._client.images.build(path=self._base_path,
-                                          dockerfile=filename)
         return dict(image_id=image.short_id)

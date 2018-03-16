@@ -3,7 +3,7 @@ import grpc
 import time
 import os
 
-from settings.custom_status_code import SUCCESS, HAS_IMAGE, NO_IMAGE
+from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
 from tool.docker_api import DockerApi
 
 import tool.gRPC.docker_migration_pb2 as docker_migration_pb2
@@ -43,7 +43,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def PingDockerServer(self, request, context):
         print("PingDockerServer")
-        status_code = SUCCESS if self._cli.ping() is True else os.errno.EHOSTDOWN
+        status_code = CODE_SUCCESS if self._cli.ping() is True else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=status_code)
 
     """
@@ -64,14 +64,14 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
                                             c_name=req.options.container_name)
         options = dict_conveter(req.options)
         # Inspect local image and container belongings
-        first_code = HAS_IMAGE if result['image'] is True else NO_IMAGE
+        first_code = CODE_HAS_IMAGE if result['image'] is True else CODE_NO_IMAGE
         yield  docker_migration_pb2.Status(code=first_code)
         # Fetch the Image if host has not the image
-        second_code = SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
+        second_code = CODE_SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=second_code)
         # Create the container from the image with given options
         c = self._cli.create(req.image_name, options, req.version)
-        third_code = SUCCESS if c is not None else os.errno.EHOSTDOWN
+        third_code = CODE_SUCCESS if c is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=third_code)
 
     """
