@@ -78,11 +78,10 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     Check checkpoint data sent from src to dst node
     and restore a container with the checkpoint
     """
-    def RestoreContainer(self, request, context):
+    def RestoreContainer(self, req, context):
         print("RestoreContainer")
-        status_codes = [0, 1]
-        for code in status_codes:
-            yield docker_migration_pb2.Status(code=code)
+        code = CODE_SUCCESS if self._cli.restore(req.c_name) is True else os.errno.EHOSTDOWN
+        return docker_migration_pb2.Status(code=code)
 
 """
 Start gRPC server based on given addr and port number.
