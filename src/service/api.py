@@ -7,11 +7,17 @@ docker_api = DockerApi()
 @v1.route("/test")
 def test():
     from tool.migration_worker import MigrationWorker
-
     #print(docker_api.create("busybox", "tatsukitatsuki", "latest"))
     #migration_worker = MigrationWorker(i_name="busybox", cp_name="checkpoint", dst_addr="10")
-    docker_api.checkpoint("cr_test", "checkpoint")
+    is_success= docker_api.checkpoint("cr_test", "checkpoint")
+    print(is_success)
+    return "hello from api.py"
 
+@v1.route("/test2")
+def test2():
+    from tool.migration_worker import MigrationWorker
+    is_success= docker_api.restore("cr_test", "checkpoint")
+    print(is_success)
     return "hello from api.py"
 
 @v1.route("/docker/check", methods=['GET'])

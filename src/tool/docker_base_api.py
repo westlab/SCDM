@@ -89,6 +89,7 @@ class DockerBaseApi:
     @return Containers|NoneType
     """
     def container_presence(self, name):
+        print(name)
         try:
             return self._client.containers.get(name)
         except docker.errors.ImageNotFound:
@@ -137,7 +138,7 @@ class DockerBaseApi:
     @params Boolean leave_running
     @return True|False
     """
-    def checkpoint(self, c_name, cp_name, leave_running=False):
+    def checkpoint(self, c_name, cp_name='checkpoint', leave_running=False):
         cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
         try:
             result = sp.run(cmd.strip().split(" "), check=True)
@@ -145,8 +146,27 @@ class DockerBaseApi:
         except:
             return False
 
-    def restore(self):
+    """
+    Restore a container from checkpoint data
+
+    @params String c_name
+    @params String cp_name='checkpoint'
+    @return True|False
+    """
+    def restore(self, c_name, cp_name='checkpoint'):
         print("restore")
+        try:
+            c= self.container_presence(c_name)
+            print(c.id)
+            if c is not None:
+                cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
+                cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
+            else:
+                raise
+            retult = sp.run(cmd.strip().split(" "), check=True)
+            return True
+        except:
+            return False
 
     """
     Return default options of container initialization based on docker_settings
