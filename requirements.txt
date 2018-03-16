@@ -1,2 +1,8 @@
 Flask==0.12.2
+requests=2.18.4
 docker==3.1.0
+docker-pycreds=0.2.2
+grpcio=1.10.0
+grpcio-tools=1.10.0
+protobuf=3.5.2
+
