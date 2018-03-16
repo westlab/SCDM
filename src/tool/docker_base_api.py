@@ -9,8 +9,10 @@ class DockerBaseApi:
 
     def __init__(self):
         config = configparser.ConfigParser()
+        config.read(DOCKER_BASIC_SETTINGS_PATH)
         self._client = docker.from_env()
-        self._basic_config = config.read(DOCKER_BASIC_SETTINGS_PATH)
+        self._basic_config = config
+
     """
     Log in specific Dockerhub repo
     based on settings written in docker_hub.ini
@@ -136,13 +138,9 @@ class DockerBaseApi:
     @return True|False
     """
     def checkpoint(self, c_name, cp_name, leave_running=False):
-        image_path_opt = "--checkpoint-dir " + self._basic_config['checkpoint']['default_cp_dir']
-        command = ['docker', 'checkpoint', 'create',
-                   image_path_opt,c_name, cp_name]
+        cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
         try:
-            # run: http://d.hatena.ne.jp/pknight/20170414/1492152828
-            # https://qiita.com/tdrk/items/9b23ad6a58ac4032bb3b
-            result = sp.run(command, check=True)
+            result = sp.run(cmd.strip().split(" "), check=True)
             return True
         except:
             return False
@@ -198,3 +196,4 @@ class DockerBaseApi:
 
         # fileがない場合は、status: 400を返す
         return dict(image_id=image.short_id)
+

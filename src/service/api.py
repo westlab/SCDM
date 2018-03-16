@@ -9,7 +9,8 @@ def test():
     from tool.migration_worker import MigrationWorker
 
     #print(docker_api.create("busybox", "tatsukitatsuki", "latest"))
-    migration_worker = MigrationWorker(i_name="busybox", cp_name="checkpoint", dst_addr="10")
+    #migration_worker = MigrationWorker(i_name="busybox", cp_name="checkpoint", dst_addr="10")
+    docker_api.checkpoint("cr_test", "checkpoint")
 
     return "hello from api.py"
 
