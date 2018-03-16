@@ -3,7 +3,7 @@ import docker
 import configparser
 import subprocess as sp
 
-from settings.docker import DOCKER_BASIC_SETTINGS_PATH, DOCKER_HUB_SETTING_PATH
+from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
 
 class DockerBaseApi:
 
@@ -21,7 +21,7 @@ class DockerBaseApi:
     """
     def login(self):
         config = configparser.ConfigParser()
-        config.read(DOCKER_HUB_SETTING_PATH)
+        config.read(CREDENTIALS_SETTING_PATH)
         try:
             is_success = self._client.login(username=config['account']['username'],
                                             password=config['account']['password'],
@@ -157,7 +157,6 @@ class DockerBaseApi:
         print("restore")
         try:
             c= self.container_presence(c_name)
-            print(c.id)
             if c is not None:
                 cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
                 cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
