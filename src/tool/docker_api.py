@@ -1,6 +1,7 @@
 import docker
 
 from tool.docker_base_api import DockerBaseApi
+from tool.migration_worker import MigrationWorker
 
 class DockerApi(DockerBaseApi):
     def __init__(self):
@@ -36,3 +37,19 @@ class DockerApi(DockerBaseApi):
     def inspect_material(self, i_name, version, c_name):
         return {"image": self.image_present(i_name, version),
                 "container": self.container_present(c_name)}
+
+
+    """
+    Migrate docker image from local to designated host
+    by creating a migration worker, which is in charge of container migration,
+    and return status_code
+
+    @params String i_name, version, c_name, cp_name
+    @params dict migration_option {host, dst_addr}
+    @params dict c_option {port}
+    @return Integer
+    """
+    def migrate(self):
+        cp_name = "checkpoint"
+
+

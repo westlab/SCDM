@@ -134,10 +134,10 @@ class DockerBaseApi:
 
     @params String c_name
     @params String cp_name
-    @params Boolean leave_running
+    #@params Boolean leave_running
     @return True|False
     """
-    def checkpoint(self, c_name, cp_name='checkpoint', leave_running=False):
+    def checkpoint(self, c_name, cp_name='checkpoint'):
         cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
         try:
             result = sp.run(cmd.strip().split(" "), check=True)

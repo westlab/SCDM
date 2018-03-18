@@ -2,18 +2,18 @@
 import configparser
 
 from tool.gRPC import grpc_client
-from settings.docker import DOCKER_BASIC_SETTINGS_PATH
-from tool.docker_api import DockerApi
 from tool.rsync import Rsync
 
 class MigrationWorker:
-    def __init__(self, cp_name, dst_addr):
-        config = configparser.ConfigParser()
-        config.read(DOCKER_BASIC_SETTINGS_PATH)
-        self._config = config
-        self._dst_addr = dst_addr
-        self._cp_name =  cp_name
-        self._cli = DockerApi()
+    def __init__(self, cli, i_name, version, c_name, cp_name, migration_option, c_opt):
+        self._docker_cli = cli
+        self._rpc_client = RpcClient()
+        self._i_name = i_name
+        self._version = version
+        self._c_name = c_name
+        self._cp_name = cp_name
+        self._migration_opt = migration_opt
+        self._c_opt = c_opt
 
     """
     Start migration-worker for migrating Docker App based on the following tasks
