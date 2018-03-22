@@ -8,22 +8,16 @@ class RpcClient:
         self._stub = docker_migration_pb2_grpc.DockerMigratorStub(channel)
 
     def ping(self):
-        stub.PingDockerServer(docker_migration_pb2.Signal(name='default'))
+        status = self._stub.PingDockerServer(docker_migration_pb2.Signal(name='default'))
+        return status.code
 
-    def restore(self):
-        stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name="cr_test"))
+    def restore(self, c_name):
+        self._stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name=c_name))
 
-    def migrate(self):
+    def request_migration(self, i_name, version, c_name, c_opt):
         port = docker_migration_pb2.Port(host=9999, container=9999)
-        options = docker_migration_pb2.ContainerOptions(container_name="hogehogehoge", port=port)
-        #gen = stub.RequestMigration(docker_migration_pb2.DockerSummary(image_name="busybox",
-        #                                                               version="latest",
-        #                                                               options=options))
-        #gen.next()
-        #gen.next()
-        #gen.next()
-
-
-
-if __name__ == '__main__':
-    run()
+        c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name, port=port)
+        gen = self._stub.RequestMigration(docker_migration_pb2.DockerSummary(image_name=i_name,
+                                                                       version=version,
+                                                                       options=c_opt))
+        return gen

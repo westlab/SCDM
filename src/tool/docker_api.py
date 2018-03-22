@@ -38,18 +38,3 @@ class DockerApi(DockerBaseApi):
         return {"image": self.image_present(i_name, version),
                 "container": self.container_present(c_name)}
 
-
-    """
-    Migrate docker image from local to designated host
-    by creating a migration worker, which is in charge of container migration,
-    and return status_code
-
-    @params String i_name, version, c_name, cp_name
-    @params dict migration_option {host, dst_addr}
-    @params dict c_option {port}
-    @return Integer
-    """
-    def migrate(self):
-        cp_name = "checkpoint"
-
-

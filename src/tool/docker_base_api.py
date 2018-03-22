@@ -204,14 +204,3 @@ class DockerBaseApi:
     """
     def port_protocol_converter(self, port, protocol='tcp'):
         return str(port) + '/' + protocol
-
-    # TODO: dockerfileからの生成を行わないので修正する必要あり
-    # のちのちasynchronous
-    def build(self, name, version="latest"):
-        # search image by docker image name in local
-
-        # 例外処理
-
-        # fileがない場合は、status: 400を返す
-        return dict(image_id=image.short_id)
-
