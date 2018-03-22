@@ -59,17 +59,17 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def RequestMigration(self, req, context):
         print("RequestMigration")
-        result = self._cli.inspect_material(i_name=req.image_name,
-                                            version=req.version,
-                                            c_name=req.options.container_name)
         options = dict_conveter(req.options)
-        # Inspect local image and container belongings
-        first_code = CODE_HAS_IMAGE if result['image'] is True else CODE_NO_IMAGE
-        yield  docker_migration_pb2.Status(code=first_code)
-        # Fetch the Image if host has not the image
+        #result = self._cli.inspect_material(i_name=req.image_name,
+        #                                    version=req.version,
+        #                                    c_name=req.options.container_name)
+        #print("Inspect local image and container belongings")
+        #first_code = CODE_HAS_IMAGE if result['image'] is True else CODE_NO_IMAGE
+        #yield  docker_migration_pb2.Status(code=first_code)
+        print("Fetch the Image if host has not the image")
         second_code = CODE_SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=second_code)
-        # Create the container from the image with given options
+        print("Create the container from the image with given options")
         c = self._cli.create(req.image_name, options, req.version)
         third_code = CODE_SUCCESS if c is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=third_code)
