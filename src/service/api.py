@@ -60,7 +60,7 @@ def migrate():
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
 
 
-    worker = MigrationWorker(cli=docker_api._client,
+    worker = MigrationWorker(cli=docker_api,
                              i_name=image_name, version=version, c_name=container_name,
                              cp_name=checkpoint_name,
                              m_opt=migration_option, c_opt=checkpoint_option)
