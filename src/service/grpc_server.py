@@ -5,6 +5,7 @@ import os
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
 from tool.docker_api import DockerApi
+from tool.common.logging.logger_factory import LoggerFactory
 
 import tool.gRPC.docker_migration_pb2 as docker_migration_pb2
 import tool.gRPC.docker_migration_pb2_grpc as docker_migration_pb2_grpc
@@ -19,7 +20,7 @@ for making easy to pass variable to next functon
         (referred to ./tool/gRPC/docker_migration.proto)
 @return dict (name, port)
 """
-def dict_conveter(options):
+def dict_convetor(options):
     # O means that a developer does not specify a port number
     dict = {
         'name': options.container_name,
@@ -32,7 +33,10 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     Provides methods that implement functionality of docker migration server.
     """
     def __init__(self):
+        LoggerFactory.init()
+
         self._cli = DockerApi()
+        self._logger = LoggerFactory.create_logger(self)
 
     """
     Notify whether Dockerd is running or not
@@ -42,7 +46,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     @return Status(Integer code)
     """
     def PingDockerServer(self, request, context):
-        print("PingDockerServer")
+        self._logger.info("ping docker server")
         status_code = CODE_SUCCESS if self._cli.ping() is True else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=status_code)
 
@@ -58,8 +62,8 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     @return Status(Integer code)
     """
     def RequestMigration(self, req, context):
-        print("RequestMigration")
-        options = dict_conveter(req.options)
+        self._logger.info("Request migration")
+        options = dict_convetor(req.options)
         #result = self._cli.inspect_material(i_name=req.image_name,
         #                                    version=req.version,
         #                                    c_name=req.options.container_name)
@@ -79,7 +83,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     and restore a container with the checkpoint
     """
     def RestoreContainer(self, req, context):
-        print("RestoreContainer")
+        self._logger.info("Restore Container")
         code = CODE_SUCCESS if self._cli.restore(req.c_name) is True else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=code)
 
@@ -95,6 +99,7 @@ def serve(addr, port):
     addr_with_port = addr + ':' + str(port)
     server.add_insecure_port(addr_with_port)
     server.start()
+
     try:
         while True:
             time.sleep(_ONE_DAY_IN_SECONDS)
@@ -103,3 +108,4 @@ def serve(addr, port):
 
 if __name__ == '__main__':
     serve()
+
