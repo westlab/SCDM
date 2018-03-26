@@ -3,8 +3,9 @@ import configparser
 from http import HTTPStatus
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
+from tool.common.logging.logger_factory import LoggerFactory
+from tool.common.rsync import Rsync
 from tool.gRPC.grpc_client import RpcClient
-from tool.rsync import Rsync
 
 class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
@@ -15,6 +16,7 @@ class MigrationWorker:
         config = configparser.ConfigParser()
         config.read(DOCKER_BASIC_SETTINGS_PATH)
 
+        self._logger = LoggerFactory.create_logger(self)
         self._d_cli = cli
         self._d_config = config
         self._i_name = i_name
@@ -44,6 +46,8 @@ class MigrationWorker:
         # 2. Inspect images
         # 3. Create checkpoints
         # 4. Send checkpoint data to dst host
+
+        self._logger.info("Order request migration to rpc client")
         gen = rpc_client.request_migration(self._i_name, self._version, self._c_name, self._c_opt)
         for x in range(self.TOTAL_STREAM_COUNT):
             code = gen.next()
@@ -51,6 +55,7 @@ class MigrationWorker:
             if x+1 is self.ORDER_OF_REQUEST_MIGRATION:
                 print("time to migtate!")
                 has_checkpointed = self._d_cli.checkpoint(self._c_name, self._cp_name)
+                self._logger.info("Checkpoint running container")
                 has_sent = self.send_checkpoint()
                 if has_checkpointed and has_sent:
                     continue
@@ -62,6 +67,7 @@ class MigrationWorker:
                 continue
 
         # 5. Restore the App based on the data
+        self._logger.info("Restore container at dst host")
         code = rpc_client.restore(self._c_name)
         if code is not CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
