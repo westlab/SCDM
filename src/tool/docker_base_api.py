@@ -120,7 +120,6 @@ class DockerBaseApi:
     def create(self, i_name, options, version="latest"):
         name_and_ver = self.name_converter(i_name, version)
         options = self.container_option(options)
-        print(options)
         try:
             container = self._client.containers.create(name_and_ver, **options)
             return container
@@ -161,7 +160,7 @@ class DockerBaseApi:
                 print(cmd)
             else:
                 raise
-            retult = sp.run(cmd.strip().split(" "), check=True)
+            result = sp.run(cmd.strip().split(" "), check=True)
             return True
         except:
             return False
@@ -174,7 +173,6 @@ class DockerBaseApi:
     @return dict
     """
     def container_option(self, options):
-        print("container_options")
         tmp_dir = self._basic_config['container']['volume_tmp_dir']
         volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
         # set user defined values
