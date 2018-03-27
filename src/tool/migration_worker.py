@@ -36,7 +36,7 @@ class MigrationWorker:
     @return True|False`
     """
     def run(self):
-        rpc_client = RpcClient()
+        rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         # 1. Check connection
         #code = rpc_client.ping()
         #if code is not CODE_SUCCESS:

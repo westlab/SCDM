@@ -3,8 +3,9 @@ import tool.gRPC.docker_migration_pb2 as docker_migration_pb2
 import tool.gRPC.docker_migration_pb2_grpc as docker_migration_pb2_grpc
 
 class RpcClient:
-    def __init__(self):
-        channel = grpc.insecure_channel('localhost:50051')
+    def __init__(self, dst_addr='localhost', port=50051):
+        dst = '{0}:{1}'.format(dst_addr, str(port))
+        channel = grpc.insecure_channel(dst)
         self._stub = docker_migration_pb2_grpc.DockerMigratorStub(channel)
 
     def ping(self):
