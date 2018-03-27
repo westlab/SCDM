@@ -10,9 +10,6 @@ def run():
             './src/tool/gRPC/docker_migration.proto'
         )
     )
-
-    # TODO: helloworldのgrpc側のcodeのpathの書き換えの必要性あり
-    # http://greennoah.hatenablog.jp/entry/20090216/1234784592
     replace()
 
 def replace():

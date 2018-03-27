@@ -36,8 +36,8 @@ def rest_server():
 def rpc_server():
     from service import grpc_server
 
+    addr = config['rpc_server']['addr']
     port = config.getint('rpc_server', 'port')
-    addr = "localhost"
     grpc_server.serve(addr, port)
 
 def rpc_client():

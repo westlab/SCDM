@@ -66,3 +66,4 @@ def migrate():
                     status=200,
                     mimetype='application/json'
                     )
+
