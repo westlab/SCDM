@@ -2,6 +2,7 @@ from flask import Blueprint, request, json, Response
 
 from tool.docker_api import DockerApi
 from tool.migration_worker import MigrationWorker
+from tool.common.time_recorder import TimeRecorder
 
 v1 = Blueprint('v1', __name__)
 docker_api = DockerApi()
@@ -15,19 +16,15 @@ def test():
     print(is_success)
     return "hello from api.py"
 
-@v1.route("/test2")
-def test2():
-    from tool.migration_worker import MigrationWorker
-    addr = '10.24.128.193'
-    cp_name = 'checkpoint'
-    worker = MigrationWorker(cp_name=cp_name, dst_addr=addr)
-    is_success = worker.start()
-    print(is_success)
-    return "hello from api.py"
-
 @v1.route("/docker/check", methods=['GET'])
 def check():
+    recorder = TimeRecorder('check', ['total_time', 'check'])
+    recorder.track(0)
+    recorder.track(1)
     is_alive = docker_api.ping()
+    recorder.track(1)
+    recorder.track(0)
+    recorder.write()
     return Response(json.dumps({'server': is_alive}),
                     mimetype='application/json')
 
