@@ -11,7 +11,6 @@ class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
     ORDER_OF_REQUEST_MIGRATION = 1
 
-
     def __init__(self, cli, i_name, version, c_name, cp_name, m_opt, c_opt):
         config = configparser.ConfigParser()
         config.read(DOCKER_BASIC_SETTINGS_PATH)
@@ -57,6 +56,11 @@ class MigrationWorker:
                 has_checkpointed = self._d_cli.checkpoint(self._c_name, self._cp_name)
                 self._logger.info("Checkpoint running container")
                 has_sent = self.send_checkpoint()
+
+                """
+                if the application involved with local filesystem, send the filesystem
+                """
+
                 if has_checkpointed and has_sent:
                     continue
                 elif has_checkpointed is not True:
