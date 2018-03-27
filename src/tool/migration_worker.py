@@ -9,7 +9,7 @@ from tool.gRPC.grpc_client import RpcClient
 
 class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
-    ORDER_OF_REQUEST_MIGRATION = 1
+    ORDER_OF_REQUEST_MIGRATION = 2
 
     def __init__(self, cli, i_name, version, c_name, cp_name, m_opt, c_opt):
         config = configparser.ConfigParser()
@@ -36,6 +36,7 @@ class MigrationWorker:
     @return True|False`
     """
     def run(self):
+        self._logger.info("Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         # 1. Check connection
         #code = rpc_client.ping()
@@ -45,17 +46,14 @@ class MigrationWorker:
         # 2. Inspect images
         # 3. Create checkpoints
         # 4. Send checkpoint data to dst host
-
         self._logger.info("Order request migration to rpc client")
         gen = rpc_client.request_migration(self._i_name, self._version, self._c_name, self._c_opt)
         for x in range(self.TOTAL_STREAM_COUNT):
-            code = gen.next()
-            print(code)
+            status = gen.next()
             if x+1 is self.ORDER_OF_REQUEST_MIGRATION:
-                print("time to migtate!")
                 has_checkpointed = self._d_cli.checkpoint(self._c_name, self._cp_name)
                 self._logger.info("Checkpoint running container")
-                has_sent = self.send_checkpoint()
+                has_sent = self.send_checkpoint(c_id=status.c_id)
 
                 """
                 if the application involved with local filesystem, send the filesystem
@@ -64,17 +62,17 @@ class MigrationWorker:
                 if has_checkpointed and has_sent:
                     continue
                 elif has_checkpointed is not True:
-                    return self.returned_data_creator('checkpoint', code=code)
+                    return self.returned_data_creator('checkpoint', code=status.code)
                 elif has_sent is not True:
-                    return self.returned_data_creator('send_checkpoint', code=code)
+                    return self.returned_data_creator('send_checkpoint', code=status.code)
             else:
                 continue
 
-        # 5. Restore the App based on the data
-        self._logger.info("Restore container at dst host")
-        code = rpc_client.restore(self._c_name)
-        if code is not CODE_SUCCESS:
-            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        ## 5. Restore the App based on the data
+        #self._logger.info("Restore container at dst host")
+        #code = rpc_client.restore(self._c_name)
+        #if code is not CODE_SUCCESS:
+        #    return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
 
 
@@ -84,10 +82,11 @@ class MigrationWorker:
     @params None
     @return True|False
     """
-    def send_checkpoint(self):
-        c = self._d_cli.container_presence(self._c_name)
-        cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], c.id)
-        return Rsync.call(cp_path, cp_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
+    def send_checkpoint(self, c_id):
+        src_c = self._d_cli.container_presence(self._c_name)
+        cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], src_c.id)
+        dst_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], c_id)
+        return Rsync.call(cp_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
 
     """
     Create message for explaning status to those who request with migration API
