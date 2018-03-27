@@ -3,14 +3,16 @@ import docker
 import configparser
 import subprocess as sp
 
-from settings.docker import DOCKER_BASIC_SETTINGS_PATH, DOCKER_HUB_SETTING_PATH
+from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
 
 class DockerBaseApi:
 
     def __init__(self):
         config = configparser.ConfigParser()
+        config.read(DOCKER_BASIC_SETTINGS_PATH)
         self._client = docker.from_env()
-        self._basic_config = config.read(DOCKER_BASIC_SETTINGS_PATH)
+        self._basic_config = config
+
     """
     Log in specific Dockerhub repo
     based on settings written in docker_hub.ini
@@ -19,7 +21,7 @@ class DockerBaseApi:
     """
     def login(self):
         config = configparser.ConfigParser()
-        config.read(DOCKER_HUB_SETTING_PATH)
+        config.read(CREDENTIALS_SETTING_PATH)
         try:
             is_success = self._client.login(username=config['account']['username'],
                                             password=config['account']['password'],
@@ -132,23 +134,37 @@ class DockerBaseApi:
 
     @params String c_name
     @params String cp_name
-    @params Boolean leave_running
+    #@params Boolean leave_running
     @return True|False
     """
-    def checkpoint(self, c_name, cp_name, leave_running=False):
-        image_path_opt = "--checkpoint-dir " + self._basic_config['checkpoint']['default_cp_dir']
-        command = ['docker', 'checkpoint', 'create',
-                   image_path_opt,c_name, cp_name]
+    def checkpoint(self, c_name, cp_name='checkpoint'):
+        cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
         try:
-            # run: http://d.hatena.ne.jp/pknight/20170414/1492152828
-            # https://qiita.com/tdrk/items/9b23ad6a58ac4032bb3b
-            result = sp.run(command, check=True)
+            result = sp.run(cmd.strip().split(" "), check=True)
             return True
         except:
             return False
 
-    def restore(self):
-        print("restore")
+    """
+    Restore a container from checkpoint data
+
+    @params String c_name
+    @params String cp_name='checkpoint'
+    @return True|False
+    """
+    def restore(self, c_name, cp_name='checkpoint'):
+        try:
+            c= self.container_presence(c_name)
+            if c is not None:
+                cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
+                cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
+                print(cmd)
+            else:
+                raise
+            retult = sp.run(cmd.strip().split(" "), check=True)
+            return True
+        except:
+            return False
 
     """
     Return default options of container initialization based on docker_settings
@@ -188,13 +204,3 @@ class DockerBaseApi:
     """
     def port_protocol_converter(self, port, protocol='tcp'):
         return str(port) + '/' + protocol
-
-    # TODO: dockerfileからの生成を行わないので修正する必要あり
-    # のちのちasynchronous
-    def build(self, name, version="latest"):
-        # search image by docker image name in local
-
-        # 例外処理
-
-        # fileがない場合は、status: 400を返す
-        return dict(image_id=image.short_id)

@@ -1,6 +1,7 @@
 import docker
 
 from tool.docker_base_api import DockerBaseApi
+from tool.migration_worker import MigrationWorker
 
 class DockerApi(DockerBaseApi):
     def __init__(self):
@@ -36,3 +37,4 @@ class DockerApi(DockerBaseApi):
     def inspect_material(self, i_name, version, c_name):
         return {"image": self.image_present(i_name, version),
                 "container": self.container_present(c_name)}
+
