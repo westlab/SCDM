@@ -68,11 +68,11 @@ class MigrationWorker:
             else:
                 continue
 
-        ## 5. Restore the App based on the data
-        #self._logger.info("Restore container at dst host")
-        #code = rpc_client.restore(self._c_name)
-        #if code is not CODE_SUCCESS:
-        #    return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        # 5. Restore the App based on the data
+        self._logger.info("Restore container at dst host")
+        code = rpc_client.restore(self._c_name)
+        if code is not CODE_SUCCESS:
+            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
 
 
