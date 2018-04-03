@@ -15,11 +15,20 @@ class RpcClient:
     def restore(self, c_name):
         self._stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name=c_name))
 
+    def inspect_artifacts(self, i_name, version, c_name):
+        c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name)
+        return self._stub.InspectArtifacts(docker_migration_pb2.DockerSummary(image_name=i_name, version=version, options=c_opt))
+
+    def create_container(self, i_name, version, c_name):
+        c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name)
+        self._stub.CreateContainer(docker_migration_pb2.DockerSummary(image_name=i_name, version=version, options=c_opt))
+
+
     def request_migration(self, i_name, version, c_name, c_opt):
         port = docker_migration_pb2.Port(host=9999, container=9999)
         c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name, port=port)
         gen = self._stub.RequestMigration(docker_migration_pb2.DockerSummary(image_name=i_name,
-                                                                       version=version,
-                                                                       options=c_opt))
+                                                                             version=version,
+                                                                             options=c_opt))
         return gen
 

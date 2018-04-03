@@ -7,6 +7,8 @@ service  DockerMigrator {
     // A simple RPC
     rpc PingDockerServer (Signal) returns (Status) {}
     rpc RestoreContainer (CheckpointSummary) returns (Status) {}
+    rpc InspectArtifacts (DockerSummary) returns (Status) {}
+    rpc CreateContainer (DockerSummary) returns (Status) {}
 
     // A server-to-client streaming RPC
     rpc RequestMigration (DockerSummary) returns (stream Status) {}
