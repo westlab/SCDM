@@ -70,13 +70,22 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         #print("Inspect local image and container belongings")
         #first_code = CODE_HAS_IMAGE if result['image'] is True else CODE_NO_IMAGE
         #yield  docker_migration_pb2.Status(code=first_code)
-        print("Fetch the Image if host has not the image")
+        self._logger.info("Fetch the image if host has not the image")
         second_code = CODE_SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=second_code)
-        print("Create the container from the image with given options")
+
+        #TODO: 存在している場合には、削除/オプションを付け加えて再生成する必要あり
+        self._logger.info("Create the container from the image with given options")
         c = self._cli.create(req.image_name, options, req.version)
-        third_code = CODE_SUCCESS if c is not None else os.errno.EHOSTDOWN
-        yield docker_migration_pb2.Status(code=third_code)
+        if c is not None:
+            self._logger.info("Create the container from scratch")
+            third_code = CODE_SUCCESS if c is not None else os.errno.EHOSTDOWN
+            yield docker_migration_pb2.Status(code=third_code, c_id=c.id)
+        else:
+            self._logger.info("***Re-Create the container with the option***")
+            third_code = os.errno.EHOSTDOWN
+            yield docker_migration_pb2.Status(code=third_code)
+
 
     """
     Check checkpoint data sent from src to dst node

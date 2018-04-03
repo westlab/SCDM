@@ -21,8 +21,10 @@ class Rsync:
     def call(cls, src_path, dst_path, host, src_addr=None, dst_addr=None):
         config = configparser.ConfigParser()
         config.read(CREDENTIALS_SETTING_PATH)
+        is_remote_path = (dst_addr is not None) and (dst_addr not in 'localhost')
+
         s_arg = "{host}@{src_addr}:{src_path}".format(host=host, src_addr=src_addr, src_path=src_path) if src_addr is not None else src_path
-        d_arg = "{host}@{dst_addr}:{dst_path}".format(host=host, dst_addr=dst_addr, dst_path=dst_path) if dst_addr is not None else dst_path
+        d_arg = "{host}@{dst_addr}:{dst_path}".format(host=host, dst_addr=dst_addr, dst_path=dst_path) if is_remote_path else dst_path
         cmd = "sshpass -p {passwd} rsync -avzr -e ssh {s_arg} {d_arg}".format(passwd=config['dst_host']['password'], s_arg=s_arg, d_arg=d_arg)
         try:
             print(cmd)
@@ -30,5 +32,3 @@ class Rsync:
             return True
         except:
             return False
-
-

@@ -42,10 +42,11 @@ message Signal {
 
 // A Status is reviceived in responce to a Request from sth rpc
 message Status {
-    // The number represents wether the request is done successfully or not
-    // 0 means success
-    // a number other than 0 means fail by a reason that is refered by error code.
+    // The number represents whether the request is done successfully or not, and container id
+    // code: a number other than 0 means fail by a reason that is refered by error code.
+    // c_id: container id
     int32 code = 1;
+    string c_id = 2;
 }
 
 // A Checkpoint is mesage after creating checkpoint on src node
