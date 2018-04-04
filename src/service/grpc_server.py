@@ -64,7 +64,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     def RequestMigration(self, req, context):
         self._logger.info("Request migration")
         options = dict_convetor(req.options)
-        result = self._cli.artifacts(i_name=req.image_name,
+        result = self._cli.inspect_artifacts(i_name=req.image_name,
                                             version=req.version,
                                             c_name=req.options.container_name)
         first_code = CODE_HAS_IMAGE if result['image'] is True else CODE_NO_IMAGE
