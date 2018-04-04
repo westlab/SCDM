@@ -181,6 +181,7 @@ class DockerBaseApi:
         cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
         try:
             result = sp.run(cmd.strip().split(" "), check=True)
+            #print(result)
             return True
         except:
             return False
