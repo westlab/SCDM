@@ -198,7 +198,6 @@ class DockerBaseApi:
             if c is not None:
                 cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
                 cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
-                print(cmd)
             else:
                 raise
             result = sp.run(cmd.strip().split(" "), check=True)

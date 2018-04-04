@@ -34,9 +34,10 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def __init__(self):
         LoggerFactory.init()
-
         self._cli = DockerApi()
         self._logger = LoggerFactory.create_logger(self)
+
+        self._cli.login()
 
     """
     Notify whether Dockerd is running or not
@@ -119,6 +120,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     @return Status(Integer code):
     """
     def CreateContainer(self, req, context):
+        self._logger.info("Create Container")
         options = dict_convetor(req.options)
         pulled_image = self._cli.fetch_image(name=req.image_name, version=req.version)
 
@@ -134,7 +136,9 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
                 code = os.errno.EHOSTDOWN
                 return docker_migration_pb2.Status(code=code)
         else:
-            return os.errno.EHOSTDOWN
+            self._logger.info("Cannot get the specified image")
+            code =  os.errno.EHOSTDOWN
+            return docker_migration_pb2.Status(code=code)
 
 """
 Start gRPC server based on given addr and port number.
