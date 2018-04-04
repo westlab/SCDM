@@ -11,7 +11,7 @@ docker_api.login()
 @v1.route("/test")
 def test():
     repo = 'tatsukitatsuki/busybox'
-    tag = '20180403_155742'
+    tag = '20180403_185150'
     hoge = docker_api.push(repo, tag)
     print(hoge)
     return "hello from api.py"
@@ -27,6 +27,14 @@ def check():
     recorder.write()
     return Response(json.dumps({'server': is_alive}),
                     mimetype='application/json')
+
+@v1.route("/ping")
+def ping():
+    from tool.gRPC.grpc_client import RpcClient
+    rpc_client = RpcClient("10.24.129.91")
+    rpc_client.ping()
+    return "hello from api.py"
+
 
 @v1.route("/docker/inspect", methods=['GET'])
 def inspect():
