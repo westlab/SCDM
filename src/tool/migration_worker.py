@@ -1,6 +1,6 @@
-#import subprocess as sp
 import configparser
 from http import HTTPStatus
+from datetime import datetime
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
@@ -27,9 +27,9 @@ class MigrationWorker:
 
     """
     Start migration-worker for migrating Docker App based on the following tasks
-    1. Check connection
-    2. Inspect images, pull the image if it doesn't exist
-    3. Create checkpoints (leave the app run)
+    1. Inspect images, pull the image if it doesn't exist
+    2. Create a container (leave the app run)
+    3. Create checkpoint (leave the app run)
     4. Send checkpoints to dst host
     5. Restore the App based on the data
 
@@ -38,26 +38,75 @@ class MigrationWorker:
     def run(self):
         self._logger.info("Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        # 1. Check connection
-        #code = rpc_client.ping()
-        #if code is not CODE_SUCCESS:
-        #    print(self.returned_data_creator(rpc_client.ping.__name__, code))
+        repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
+        tag = self.tag_creator()
 
-        # 2. Inspect images
+        # 1. Inspect images
+        code = rpc_client.inspect(i_name=repo, version=tag, c_name=self._c_name)
+        if code == CODE_NO_IMAGE:
+            image = self._d_cli.commit(c_name=self._c_name, repository=repo, tag=tag)
+            if image is not None:
+                self._logger.info("Push Docker repo:{0}, tag:{1}".format(repo, tag))
+                has_pushed = self._d_cli.push(repository=repo, tag=tag)
+                if has_pushed is False:
+                    return self.returned_data_creator('push')
+            else:
+                return self.returned_data_creator('commit')
+
+        # 2. Fetch Docker image from docker hub, and Create a containeri
         # 3. Create checkpoints
-        # 4. Send checkpoint data to dst host
-        self._logger.info("Order request migration to rpc client")
+        # 4. Send checkpoints docker
+        status_with_c_id = rpc_client.create_container(i_name=repo, version=tag, c_name=self._c_name)
+        if status_with_c_id.code == CODE_SUCCESS:
+            self._logger.info("Checkpoint running container")
+            has_checkpointed = self._d_cli.checkpoint(self._c_name, self._cp_name)
+            has_sent = self.send_checkpoint(c_id=status_with_c_id.c_id)
+
+            if has_checkpointed is not True:
+                return self.returned_data_creator('checkpoint', code=status_with_c_id.code)
+            if has_sent is not True:
+                return self.returned_data_creator('send_checkpoint', code=status_with_c_id.code)
+        else:
+            return self.returned_data_creator('create', code=status_with_c_id.code)
+        # 5. Restore the App based on the data
+        self._logger.info("Restore container at dst host")
+        code = rpc_client.restore(self._c_name)
+        if code != CODE_SUCCESS:
+            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        return self.returned_data_creator('fin')
+
+        """
         gen = rpc_client.request_migration(self._i_name, self._version, self._c_name, self._c_opt)
+
+        # 1. Inspect images
+        status = gen.next()
+        if status.code == CODE_HAS_IMAGE:
+            # dst host has not the image
+            repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
+            tag = self.tag_creator()
+            image = self._d_cli.commit(c_name=self._c_name, repository=repo, tag=tag)
+            if image is not None:
+                self._logger.info("Push Docker repo:{0}, tag:{1}".format(repo, tag))
+                has_pushed = self._d_cli.push(repository=repo, tag=tag)
+                if has_pushed is False:
+                    return self.returned_data_creator('push')
+            else:
+                return self.returned_data_creator('commit')
+
+        # 2. Create checkpoints
+        status = gen.next()
+
+
+        # 3. Send checkpoint data to dst host
+        # returns dokcer inspecation for a image and a container
+
         for x in range(self.TOTAL_STREAM_COUNT):
-            status = gen.next()
             if x+1 is self.ORDER_OF_REQUEST_MIGRATION:
                 has_checkpointed = self._d_cli.checkpoint(self._c_name, self._cp_name)
                 self._logger.info("Checkpoint running container")
                 has_sent = self.send_checkpoint(c_id=status.c_id)
 
-                """
-                if the application involved with local filesystem, send the filesystem
-                """
+                #if the application involved with local filesystem, send the filesystem
 
                 if has_checkpointed and has_sent:
                     continue
@@ -68,12 +117,13 @@ class MigrationWorker:
             else:
                 continue
 
-        # 5. Restore the App based on the data
+        #5. Restore the App based on the data
         self._logger.info("Restore container at dst host")
         code = rpc_client.restore(self._c_name)
         if code is not CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
+        """
 
 
     """
@@ -86,7 +136,16 @@ class MigrationWorker:
         src_c = self._d_cli.container_presence(self._c_name)
         cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], src_c.id)
         dst_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], c_id)
-        return Rsync.call(cp_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
+        is_success = Rsync.call(cp_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
+        return is_success
+
+    """
+    Create docker tag, which is unique to generated worker
+    @params None
+    @return String tag
+    """
+    def tag_creator(self):
+        return datetime.now().strftime('%Y%m%d_%H%M%S')
 
     """
     Create message for explaning status to those who request with migration API
@@ -105,9 +164,13 @@ class MigrationWorker:
             data["message"] = "dockerd is not running"
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is "restore":
-            print('restore')
+            data["message"] = "cannot restore"
+            return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is "migration_request":
             data["message"] = "cannot checkpoint"
+            return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
+        elif func_name is 'create':
+            data["message"] = "cannot create container"
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'checkpoint':
             data["message"] = "cannot checkpoint"
@@ -115,9 +178,16 @@ class MigrationWorker:
         elif func_name is 'send_checkpoint':
             data["message"] = 'cannot send checkpoint data'
             return { "data": data, "status": HTTPStatus.BAD_REQUEST.value}
+        elif func_name is  "commit":
+            data["message"] = 'cannot commit the container '
+            return { "data": data, "status": HTTPStatus.BAD_REQUEST.value}
+        elif func_name is  "push":
+            data["message"] = 'cannot push generated image'
+            return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'fin':
             data["message"] = "Accepted"
             return { "data": data, "status": HTTPStatus.OK.value }
         else:
             data["message"] = "unknown function"
             return { "data": data, "status": HTTPStatus.BAD_REQUEST.value}
+

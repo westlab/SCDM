@@ -6,14 +6,14 @@ from tool.common.time_recorder import TimeRecorder
 
 v1 = Blueprint('v1', __name__)
 docker_api = DockerApi()
+docker_api.login()
 
 @v1.route("/test")
 def test():
-    from tool.migration_worker import MigrationWorker
-    #print(docker_api.create("busybox", "tatsukitatsuki", "latest"))
-    #migration_worker = MigrationWorker(i_name="busybox", cp_name="checkpoint", dst_addr="10")
-    is_success= docker_api.checkpoint("cr_test", "checkpoint")
-    print(is_success)
+    repo = 'tatsukitatsuki/busybox'
+    tag = '20180403_185150'
+    hoge = docker_api.push(repo, tag)
+    print(hoge)
     return "hello from api.py"
 
 @v1.route("/docker/check", methods=['GET'])
@@ -28,13 +28,21 @@ def check():
     return Response(json.dumps({'server': is_alive}),
                     mimetype='application/json')
 
+@v1.route("/ping")
+def ping():
+    from tool.gRPC.grpc_client import RpcClient
+    rpc_client = RpcClient("10.24.129.91")
+    rpc_client.ping()
+    return "hello from api.py"
+
+
 @v1.route("/docker/inspect", methods=['GET'])
 def inspect():
     # TODO: 例外処理の追加 (no parameterの場合)
     image_name = request.args.get('image_name')
     version = request.args.get('version')
     container_name = request.args.get('container_name')
-    data = docker_api.inspect_material(image_name, version, container_name)
+    data = docker_api.inspect_artifacts(image_name, version, container_name)
     return Response(json.dumps(data),
                     mimetype='application/json')
 
@@ -61,9 +69,9 @@ def migrate():
                              i_name=image_name, version=version, c_name=container_name,
                              cp_name=checkpoint_name,
                              m_opt=migration_option, c_opt=checkpoint_option)
-    worker.run()
-    return Response(json.dumps({'message': 'Accepted'}),
-                    status=200,
+    data = worker.run()
+    return Response(json.dumps(data['data']),
+                    status=data['status'],
                     mimetype='application/json'
                     )
 

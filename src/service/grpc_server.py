@@ -34,9 +34,10 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def __init__(self):
         LoggerFactory.init()
-
         self._cli = DockerApi()
         self._logger = LoggerFactory.create_logger(self)
+
+        self._cli.login()
 
     """
     Notify whether Dockerd is running or not
@@ -64,12 +65,12 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     def RequestMigration(self, req, context):
         self._logger.info("Request migration")
         options = dict_convetor(req.options)
-        #result = self._cli.inspect_material(i_name=req.image_name,
-        #                                    version=req.version,
-        #                                    c_name=req.options.container_name)
-        #print("Inspect local image and container belongings")
-        #first_code = CODE_HAS_IMAGE if result['image'] is True else CODE_NO_IMAGE
-        #yield  docker_migration_pb2.Status(code=first_code)
+        result = self._cli.inspect_artifacts(i_name=req.image_name,
+                                            version=req.version,
+                                            c_name=req.options.container_name)
+        first_code = CODE_HAS_IMAGE if result['image'] is True else CODE_NO_IMAGE
+        yield  docker_migration_pb2.Status(code=first_code)
+
         self._logger.info("Fetch the image if host has not the image")
         second_code = CODE_SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=second_code)
@@ -86,7 +87,6 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
             third_code = os.errno.EHOSTDOWN
             yield docker_migration_pb2.Status(code=third_code)
 
-
     """
     Check checkpoint data sent from src to dst node
     and restore a container with the checkpoint
@@ -95,6 +95,50 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         self._logger.info("Restore Container")
         code = CODE_SUCCESS if self._cli.restore(req.c_name) is True else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=code)
+
+    """
+    Inspect local image and container artifacts, and Return results
+    @params DockerSummary(String image_name,
+                          String version,
+                          String container_name)
+    @return Status(Integer code):
+    """
+    def InspectArtifacts(self, req, context):
+        self._logger.info("Inspect local image and container artifacts")
+        result = self._cli.inspect_artifacts(i_name=req.image_name,
+                                            version=req.version,
+                                            c_name=req.options.container_name)
+        code = CODE_HAS_IMAGE if result['image'] is True else CODE_NO_IMAGE
+        return docker_migration_pb2.Status(code=code)
+
+    """
+    Create a container create,
+    and if the host has not the container, host will pull it
+    @params DockerSummary(String image_name,
+                          String version,
+                          String container_name)
+    @return Status(Integer code):
+    """
+    def CreateContainer(self, req, context):
+        self._logger.info("Create Container")
+        options = dict_convetor(req.options)
+        pulled_image = self._cli.fetch_image(name=req.image_name, version=req.version)
+
+        if pulled_image is not None:
+            self._logger.info("Create the container from the image with given options")
+            c = self._cli.create(req.image_name, options, req.version)
+            if c is not None:
+                self._logger.info("Create the container from scratch")
+                code = CODE_SUCCESS if c is not None else os.errno.EHOSTDOWN
+                return docker_migration_pb2.Status(code=code, c_id=c.id)
+            else:
+                self._logger.info("***Re-Create the container with the option***")
+                code = os.errno.EHOSTDOWN
+                return docker_migration_pb2.Status(code=code)
+        else:
+            self._logger.info("Cannot get the specified image")
+            code =  os.errno.EHOSTDOWN
+            return docker_migration_pb2.Status(code=code)
 
 """
 Start gRPC server based on given addr and port number.
@@ -117,4 +161,3 @@ def serve(addr, port):
 
 if __name__ == '__main__':
     serve()
-

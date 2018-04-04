@@ -1,6 +1,7 @@
 # doc https://docker-py.readthedocs.io/en/stable/
 import docker
 import configparser
+import json
 import subprocess as sp
 
 from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
@@ -23,9 +24,9 @@ class DockerBaseApi:
         config = configparser.ConfigParser()
         config.read(CREDENTIALS_SETTING_PATH)
         try:
-            is_success = self._client.login(username=config['account']['username'],
-                                            password=config['account']['password'],
-                                            email=config['account']['email'])
+            is_success = self._client.login(username=config['remote_docker_hub']['username'],
+                                            password=config['remote_docker_hub']['password'],
+                                            email=config['remote_docker_hub']['email'])
             return True if is_success is not None else False
         except docker.errors.APIError:
             print("Given account information is Unauthorized")
@@ -42,13 +43,72 @@ class DockerBaseApi:
     """
     Pull docker image based on given two arguments
 
-    @params String name
-    @params String version="latest"
+    @params String repository
+    @params String tag="latest"
     @return Image
     """
-    def pull(self, name, version="latest"):
-        image = self._client.images.pull(self.name_converter(name, version))
+    def pull(self, repository, tag="latest"):
+        image = self._client.images.pull(self.name_converter(repository, tag))
         return image
+
+    """
+    Push docker image based on the repository and tag
+
+    @params String repository
+    @params String tag
+    @params True | False
+    """
+    def push(self, repository, tag="latest"):
+        try:
+            re = self._client.images.push(repository, tag=tag)
+            if 'error' in re:
+                raise
+            else:
+                return True
+        except docker.errors.APIError:
+            return False
+        except:
+            return False
+
+    """
+    Create Docker container specified name and tag,
+    and basic options
+
+    @params String i_name
+    @params String version="latest"
+    @params dict options(port, container_name)
+    @return Container|None
+    """
+    def create(self, i_name, options, version="latest"):
+        name_and_ver = self.name_converter(i_name, version)
+        options = self.container_option(options)
+        try:
+            container = self._client.containers.create(name_and_ver, **options)
+            return container
+        except docker.errors.ImageNotFound:
+            return None
+        except docker.errors.APIError:
+            return None
+
+    """
+    Commit Docker container
+
+    @params String i_name
+    @params String version
+    @params String c_name
+    @params image | None
+    """
+    def commit(self, c_name, repository=None, tag=None):
+        try:
+            container = self._client.containers.get(c_name)
+            if repository and tag is not None:
+                image = container.commit(repository=repository, tag=tag)
+                return image
+            else:
+                image = container.commit
+                return image
+        except docker.errors.APIError:
+            return None
 
     """
     Check whether specific image exists,
@@ -108,25 +168,6 @@ class DockerBaseApi:
         except docker.errors.NotFound:
             return False
 
-    """
-    Create Docker container specified name and tag,
-    and basic options
-
-    @params String i_name
-    @params String version="latest"
-    @params dict options(port, container_name)
-    @return Container|None
-    """
-    def create(self, i_name, options, version="latest"):
-        name_and_ver = self.name_converter(i_name, version)
-        options = self.container_option(options)
-        try:
-            container = self._client.containers.create(name_and_ver, **options)
-            return container
-        except docker.errors.ImageNotFound:
-            return None
-        except docker.errors.APIError:
-            return None
 
     """
     Checkpoint a running container
@@ -140,6 +181,7 @@ class DockerBaseApi:
         cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
         try:
             result = sp.run(cmd.strip().split(" "), check=True)
+            #print(result)
             return True
         except:
             return False
@@ -157,7 +199,6 @@ class DockerBaseApi:
             if c is not None:
                 cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
                 cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
-                print(cmd)
             else:
                 raise
             result = sp.run(cmd.strip().split(" "), check=True)

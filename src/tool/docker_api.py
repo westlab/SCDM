@@ -34,7 +34,7 @@ class DockerApi(DockerBaseApi):
     @params String version
     @return dict{"image": Boolean, "container": Boolean}
     """
-    def inspect_material(self, i_name, version, c_name):
+    def inspect_artifacts(self, i_name, version, c_name):
         return {"image": self.image_present(i_name, version),
                 "container": self.container_present(c_name)}
 
