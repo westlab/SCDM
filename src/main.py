@@ -54,8 +54,17 @@ def codegen():
 
 def cli_soc():
     from tool.socket.remote_com_client import RemoteComClient
+    from tool.socket.remote_com_client import ClientMessageCode
+
     cli = RemoteComClient()
     cli.connect()
+
+    app_id = 1;
+    i_message_type = ClientMessageCode.SIG_CHG.value
+    ret = cli.send_formalized_message(app_id, i_message_type)
+    print(ret)
+    cli.read()
+    #cli.close()
 
 if __name__ == "__main__":
     if args.program == 'rest':
