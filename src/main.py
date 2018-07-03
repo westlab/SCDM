@@ -59,12 +59,12 @@ def cli_soc():
     cli = RemoteComClient()
     cli.connect()
 
-    app_id = 1;
+    app_id = 0;
     i_message_type = ClientMessageCode.SIG_CHG.value
     ret = cli.send_formalized_message(app_id, i_message_type)
     print(ret)
     cli.read()
-    #cli.close()
+    cli.close()
 
 if __name__ == "__main__":
     if args.program == 'rest':
