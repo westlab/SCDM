@@ -9,7 +9,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('rest', 'rpc', 'codegen', 'client'),
+                    choices=('rest', 'rpc', 'codegen', 'client', 'cli_soc'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
@@ -52,6 +52,20 @@ def codegen():
     from service import codegen
     codegen.run()
 
+def cli_soc():
+    from tool.socket.remote_com_client import RemoteComClient
+    from tool.socket.remote_com_client import ClientMessageCode
+
+    cli = RemoteComClient()
+    cli.connect()
+
+    app_id = 0;
+    i_message_type = ClientMessageCode.SIG_CHG.value
+    ret = cli.send_formalized_message(app_id, i_message_type)
+    print(ret)
+    cli.read()
+    cli.close()
+
 if __name__ == "__main__":
     if args.program == 'rest':
         rest_server()
@@ -61,3 +75,5 @@ if __name__ == "__main__":
         codegen()
     if args.program == 'client':
         rpc_client()
+    if args.program == 'cli_soc':
+        cli_soc()
