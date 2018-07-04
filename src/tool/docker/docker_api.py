@@ -1,6 +1,6 @@
 import docker
 
-from tool.docker_base_api import DockerBaseApi
+from tool.docker.docker_base_api import DockerBaseApi
 from tool.migration_worker import MigrationWorker
 
 class DockerApi(DockerBaseApi):
