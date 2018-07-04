@@ -1,6 +1,6 @@
 from flask import Blueprint, request, json, Response
 
-from tool.docker_api import DockerApi
+from tool.docker.docker_api import DockerApi
 from tool.migration_worker import MigrationWorker
 from tool.common.time_recorder import TimeRecorder
 
