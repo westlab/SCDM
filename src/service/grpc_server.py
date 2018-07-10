@@ -4,7 +4,7 @@ import time
 import os
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
-from tool.docker_api import DockerApi
+from tool.docker.docker_api import DockerApi
 from tool.common.logging.logger_factory import LoggerFactory
 
 import tool.gRPC.docker_migration_pb2 as docker_migration_pb2

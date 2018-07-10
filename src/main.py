@@ -9,7 +9,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('rest', 'rpc', 'codegen', 'client', 'cli_soc'),
+                    choices=('rest', 'rpc', 'codegen', 'client', 'cli_soc', 'sync'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
@@ -66,6 +66,14 @@ def cli_soc():
     cli.read()
     cli.close()
 
+def sync():
+    from tool.docker.docker_layer import DockerLayer
+
+    image_name = "tatsuki"
+    i = DockerLayer()
+    i.execute_remapping(image_name)
+
+
 if __name__ == "__main__":
     if args.program == 'rest':
         rest_server()
@@ -77,3 +85,5 @@ if __name__ == "__main__":
         rpc_client()
     if args.program == 'cli_soc':
         cli_soc()
+    if args.program == 'sync':
+        sync()
