@@ -5,12 +5,12 @@ import sys
 from pathlib import Path
 
 from tool.docker.docker_base_api import DockerBaseApi
+from settings.docker import OVERLAYER2_DIR_PATH, LAYERDB_DIR_PATH, IMAGEDB_DIR_PATH, CONTAINER_CONF_PATH
 
 """
 Manage Docker Image and Container Layers
 """
 
-IMAGEDB_DIR_PATH="/var/lib/docker/image/overlay2/imagedb"
 LAYERDB_DIR_PATH="/var/lib/docker/image/overlay2/layerdb"
 OVERLAYER2_DIR_PATH="/var/lib/docker/overlay2"
 
@@ -26,15 +26,11 @@ class DockerLayer(DockerBaseApi):
     def cache_id_settings_base_path(self):
         return Path(LAYERDB_DIR_PATH + "/sha256")
 
-    def container_mount_settings_path(self):
-        return Path(LAYERDB_DIR_PATH + "/mounts")
-
     def overlays_path(self):
         return Path(OVERLAYER2_DIR_PATH)
 
     def alternaitve_cache_id_file_path(self, layer_id):
         return self.cache_id_settings_base_path()/layer_id/"local-cache-id"
-
 
     """
     Get relationships between original layer_ids and local layer_ids 

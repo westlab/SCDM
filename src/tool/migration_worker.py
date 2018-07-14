@@ -68,6 +68,7 @@ class MigrationWorker:
                 return self.returned_data_creator('send_checkpoint', code=status_with_c_id.code)
         else:
             return self.returned_data_creator('create', code=status_with_c_id.code)
+
         # 5. Restore the App based on the data
         self._logger.info("Restore container at dst host")
         code = rpc_client.restore(self._c_name)
