@@ -168,7 +168,6 @@ class DockerBaseApi:
         except docker.errors.NotFound:
             return False
 
-
     """
     Checkpoint a running container
 
@@ -178,12 +177,14 @@ class DockerBaseApi:
     @return True|False
     """
     def checkpoint(self, c_name, cp_name='checkpoint'):
-        cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
+        #cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
+        cmd='docker checkpoint create {c_name} {cp_name}'.format(c_name=c_name, cp_name=cp_name)
         try:
             result = sp.run(cmd.strip().split(" "), check=True)
             #print(result)
             return True
-        except:
+        except Exception as e:
+            print("args:", e.args)
             return False
 
     """
@@ -197,13 +198,15 @@ class DockerBaseApi:
         try:
             c= self.container_presence(c_name)
             if c is not None:
-                cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
-                cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
+                #cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
+                #cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
+                cmd='docker start --checkpoint {cp_name} {c_name}'.format(cp_name=cp_name, c_name=c_name)
             else:
                 raise
             result = sp.run(cmd.strip().split(" "), check=True)
             return True
-        except:
+        except Exception as e:
+            print("args:", e.args)
             return False
 
     """
