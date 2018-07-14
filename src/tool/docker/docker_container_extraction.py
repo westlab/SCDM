@@ -5,7 +5,7 @@ from pathlib import Path
 
 from tool.docker.docker_base_api import DockerBaseApi
 from tool.common.rsync import Rsync
-from settings.docker import OVERLAYER2_DIR_PATH, LAYERDB_DIR_PATH, IMAGEDB_DIR_PATH, CONTAINER_PATH, DST_TARGET_DIR_PATH
+from settings.docker import OVERLAYER2_DIR_PATH, LAYERDB_DIR_PATH, IMAGEDB_DIR_PATH, CONTAINER_CONF_PATH, DST_TARGET_DIR_PATH
 
 """
 Extract components of Docker container
@@ -75,18 +75,18 @@ class DockerContainerExtraction(DockerBaseApi):
     @params String container_name
     @return Array[String dir_name]
     """
-    def extract_container_related_paths(self, container_name):
-        return  (self.extract_container_related_artifacts(container_name)).values()
+    def extract_container_related_paths(self, container_name, layer_ids):
+        return  (self.extract_container_related_artifacts(container_name, layer_ids)).values()
 
     """
     Return Dict, which stores container related paths with file name key
     @params String container_name
+    @params Array[String layer_id]
     @returns Dict{ Key: String dir_name, Value: Path dir_name}
     """
-    def extract_container_related_artifacts(self, container_name):
+    def extract_container_related_artifacts(self, container_name, layer_ids):
         running_state_dict = {}
         container_id = self.container_presence(container_name).id
-        layer_ids = self.get_container_layer_ids(container_name)
         running_state_dict['rootfs'] = [ self.overlays_path()/layer_id for layer_id in layer_ids if (self.overlays_path()/layer_id).name.isalnum()][0]
         running_state_dict['rootfs_init'] = [ self.overlays_path()/layer_id for layer_id in layer_ids if not (self.overlays_path()/layer_id).name.isalnum()][0]
         running_state_dict['containers'] = self.container_settings_path(container_id)
@@ -101,13 +101,25 @@ class DockerContainerExtraction(DockerBaseApi):
     """
     def allocate_container_artifacts(self, container_name, layer_ids):
         target_path = self.dst_target_dir_path(container_name)
-        d = self.extract_container_related_artifacts(container_name)
+        d = self.extract_container_related_artifacts(container_name, layer_ids)
         try:
-            for tmp_d_name, d_name in d.iteritems():
+            for tmp_d_name, d_name in d.items():
                 shutil.move(str(targe_path/tmp_d_name), d_name)
             self.create_symbolic_links(layer_ids)
         except Exception as e:
             print("args:", e.args)
             return False
         return True
+
+    def transfer_container_artifacts(self, container_name):
+        dst_addr='10.24.129.91'
+        layer_ids = self.get_container_layer_ids(container_name)
+        dst_base_path = self.dst_target_dir_path(container_name)
+        con_dir = self.extract_container_related_artifacts(container_name, layer_ids)
+        for tmp_d_name, d_name in con_dir.items():
+            #print(tmp_d_name)
+            #print(d_name)
+            src_path = str(d_name)
+            dst_path = str(dst_base_path/tmp_d_name) + '/'
+            is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=dst_addr)
 

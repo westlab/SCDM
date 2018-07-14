@@ -10,7 +10,7 @@ CREDENTIALS_SETTING_PATH = "./conf/credentials.ini"
 OVERLAYER2_DIR_PATH="/var/lib/docker/overlay2"
 LAYERDB_DIR_PATH="/var/lib/docker/image/overlay2/layerdb"
 IMAGEDB_DIR_PATH="/var/lib/docker/image/overlay2/imagedb"
-CONTAINER_CONF_PATH="/var/lib/docker/container"
+CONTAINER_CONF_PATH="/var/lib/docker/containers"
 
 # Directory storing transfered files
 DST_TARGET_DIR_PATH="/tmp/dm_files"
