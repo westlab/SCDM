@@ -13,9 +13,11 @@ Extract components of Docker container
 """
 
 class DockerContainerExtraction(DockerBaseApi):
-    def __init__(self, i_layer_ids, c_layer_ids=None):
+    def __init__(self, c_name, i_layer_ids, c_id=None, c_layer_ids=None):
         super().__init__()
         self._lo_client = docker.APIClient()
+        self._c_name = c_name
+        self._c_id = c_id
         self._i_layer_ids = i_layer_ids
         self._c_layer_ids = c_layer_ids
 
@@ -51,27 +53,12 @@ class DockerContainerExtraction(DockerBaseApi):
     def layer_short_identifier(self, layer_id):
         return (self.overlays_path()/layer_id/"link").read_text()
 
-    def dst_target_dir_path(self, container_name):
+    def dst_target_dir_path(self):
         #container_id = self.container_presence(container_name).id
-        container_id = 'd6e61a50dd4e0d6c446412dae75b5c78e3b3d11e85eeaed45d97d5b88b194ede'
-        return Path(DST_TARGET_DIR_PATH + '/' + container_id)
+        return Path(DST_TARGET_DIR_PATH + '/' + self._c_id)
 
     def dst_target_dir_dict(self):
         return dict.fromkeys(['rootfs', 'rootfs-init', 'mounts','containers'])
-
-    """
-    Create docker dst target directory
-    @params String container_name
-    @return True | Flase
-    """
-    def create_tmp_target_dir(self, container_name):
-        base_path = self.dst_target_dir_path(container_name)
-        try:
-            base_path.mkdir(parents=true)
-        except Exception as e:
-            print("create_tmp_target_dir args:", e.args)
-            return False
-        return True
 
     """
     Get relation between container id and local container layer_id
@@ -90,21 +77,6 @@ class DockerContainerExtraction(DockerBaseApi):
             self._c_layer_ids = layer_ids
         return layer_ids
     """
-    Create symbolic links for container layer
-    @params True | False
-    """
-    def create_symbolic_links(self):
-        try: 
-            for layer_id in self._c_layer_ids:
-                base_path = self.identifier_path(layer_id)
-                target_link = Path("../" + layer_id + "/diff")
-                base_path.symlink_to(target_link)
-        except Exception as e:
-            print("create_symbolic_links args:", e.args)
-            return False
-        return True
-
-    """
     Get relation between layer_id and short_identifier
     @return  Dict{Key: String image | container, Value: String short_identider}
     """
@@ -114,19 +86,6 @@ class DockerContainerExtraction(DockerBaseApi):
         if self._c_layer_ids is not None:
             identifiers['container'] = [self.layer_short_identifier(c_layer_id) for c_layer_id in self._c_layer_ids if 'init' in c_layer_id]
         return identifiers
-
-    """
-    ReWrite lower layer in overlay setting
-    @return True|False
-    """
-    def change_lower_layer_settings(self):
-        identifier = self.get_short_identifer_relations()
-        print(identifier)
-        for layer_id in self._c_layer_ids:
-            c_layer_path = self.overlays_path()/layer_id/'lower'
-            setting = 'l/' + ':l/'.join(identifier['image']) if 'init' in str(c_layer_path) else 'l/' + ':l/'.join(identifier['image'] + identifier['container'])
-            c_layer_path.write_text(setting)
-        return True
 
     """
     Extract related file names of running container
@@ -147,13 +106,64 @@ class DockerContainerExtraction(DockerBaseApi):
     """
     def extract_container_related_artifacts(self, container_name, layer_ids):
         running_state_dict = self.dst_target_dir_dict()
-        #container_id = self.container_presence(container_name).id
-        container_id = 'd6e61a50dd4e0d6c446412dae75b5c78e3b3d11e85eeaed45d97d5b88b194ede'
         running_state_dict['rootfs'] = [ self.overlays_path()/layer_id for layer_id in layer_ids if (self.overlays_path()/layer_id).name.isalnum()][0]
         running_state_dict['rootfs-init'] = [ self.overlays_path()/layer_id for layer_id in layer_ids if not (self.overlays_path()/layer_id).name.isalnum()][0]
-        running_state_dict['containers'] = self.container_settings_path(container_id)
-        running_state_dict['mounts'] = self.container_mount_settings_path()/container_id
+        running_state_dict['containers'] = self.container_settings_path(self._c_id)
+        running_state_dict['mounts'] = self.container_mount_settings_path()/self._c_id
         return running_state_dict
+
+    def transfer_container_artifacts(self, container_name):
+        dst_addr='10.24.129.91'
+        layer_ids = self.get_container_layer_ids(container_name)
+        dst_base_path = self.dst_target_dir_path(container_name)
+        con_dir = self.extract_container_related_artifacts(container_name, layer_ids)
+        for tmp_d_name, d_name in con_dir.items():
+            #print(tmp_d_name)
+            #print(d_name)
+            src_path = str(d_name)
+            dst_path = str(dst_base_path/tmp_d_name) + '/'
+            is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=dst_addr)
+
+    """
+    Create docker dst target directory
+    @params String container_name
+    @return True | Flase
+    """
+    def create_tmp_target_dir(self, container_name):
+        base_path = self.dst_target_dir_path(container_name)
+        try:
+            base_path.mkdir(parents=true)
+        except Exception as e:
+            print("create_tmp_target_dir args:", e.args)
+            return False
+        return True
+
+    """
+    ReWrite lower layer in overlay setting
+    @return True|False
+    """
+    def change_lower_layer_settings(self):
+        identifier = self.get_short_identifer_relations()
+        for layer_id in self._c_layer_ids:
+            c_layer_path = self.overlays_path()/layer_id/'lower'
+            setting = 'l/' + ':l/'.join(identifier['image']) if 'init' in str(c_layer_path) else 'l/' + ':l/'.join(identifier['image'] + identifier['container'])
+            c_layer_path.write_text(setting)
+        return True
+
+    """
+    Create symbolic links for container layer
+    @params True | False
+    """
+    def create_symbolic_links(self):
+        try:
+            for layer_id in self._c_layer_ids:
+                base_path = self.identifier_path(layer_id)
+                target_link = Path("../" + layer_id + "/diff")
+                base_path.symlink_to(target_link)
+        except Exception as e:
+            print("create_symbolic_links args:", e.args)
+            return False
+        return True
 
     """
     Allocate tranfered files to original location
@@ -172,16 +182,4 @@ class DockerContainerExtraction(DockerBaseApi):
             print("allocate_container_artifacts args:", e.args)
             return False
         return True
-
-    def transfer_container_artifacts(self, container_name):
-        dst_addr='10.24.129.91'
-        layer_ids = self.get_container_layer_ids(container_name)
-        dst_base_path = self.dst_target_dir_path(container_name)
-        con_dir = self.extract_container_related_artifacts(container_name, layer_ids)
-        for tmp_d_name, d_name in con_dir.items():
-            #print(tmp_d_name)
-            #print(d_name)
-            src_path = str(d_name)
-            dst_path = str(dst_base_path/tmp_d_name) + '/'
-            is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=dst_addr)
 

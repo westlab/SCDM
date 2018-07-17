@@ -72,20 +72,21 @@ def sync():
 
     image_name = "busybox"
     c_name = "cr_test"
+
+    #src
     i = DockerLayer()
-    i.execute_remapping(image_name)
-
     layer_ids = i.get_local_layer_ids(image_name)
-    ii = DockerContainerExtraction(layer_ids, ['8ffabcbcba88c824b403e0ece2480eba869fd9a98135e94024cfccd1b761f400-init', '8ffabcbcba88c824b403e0ece2480eba869fd9a98135e94024cfccd1b761f400'])
-    ##ii.transfer_container_artifacts(c_name)
-    #ii.get_short_identifer_relations()
+    i.execute_remapping(image_name)
+    ii = DockerContainerExtraction(c_name, layer_ids)
+    ii.transfer_container_artifacts(c_name)
+
+    #dst
+    #c_id = None
+    #i = DockerLayer()
+    #layer_ids = i.get_local_layer_ids(image_name)
+    #ii = DockerContainerExtraction(c_name, layer_ids, ['8ffabcbcba88c824b403e0ece2480eba869fd9a98135e94024cfccd1b761f400-init', '8ffabcbcba88c824b403e0ece2480eba869fd9a98135e94024cfccd1b761f400'])
+    #ii.allocate_container_artifacts(c_name)
     #ii.get_container_layer_ids(c_name)
-
-    #ii.change_lower_layer_settings()
-
-    relations = ii.create_symbolic_links()
-    print(relations)
-
 
 if __name__ == "__main__":
     if args.program == 'rest':
