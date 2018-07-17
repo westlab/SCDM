@@ -70,14 +70,14 @@ def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
 
-    image_name = "tatsuki/test"
+    image_name = "busybox"
     c_name = "cr_test"
-    i = DockerLayer()
+    #i = DockerLayer()
     ii = DockerContainerExtraction()
     #i.execute_remapping(image_name)
     ii.transfer_container_artifacts(c_name)
     #relations = ii.create_symbolic_links(layer_ids)
-    #print(relations)
+    print(relations)
 
 
 if __name__ == "__main__":

@@ -61,7 +61,7 @@ class DockerLayer(DockerBaseApi):
         reg = re.compile(pattern)
         layer_config =  self._lo_client.inspect_image(image_name)['GraphDriver']['Data']
 
-        local_layer_ids = [ reg.match(local_layer).group(1) for local_layer in layer_config['LowerDir'].split(':')]
+        local_layer_ids = [ reg.match(local_layer).group(1) for local_layer in layer_config['LowerDir'].split(':')] if 'LowerDir' in layer_config.keys() else []
         local_layer_ids.append(reg.match(layer_config['UpperDir']).group(1))
         return local_layer_ids
 
