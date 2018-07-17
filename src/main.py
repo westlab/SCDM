@@ -76,7 +76,7 @@ def sync():
     #src
     i = DockerLayer()
     layer_ids = i.get_local_layer_ids(image_name)
-    i.execute_remapping(image_name)
+    #i.execute_remapping(image_name)
     ii = DockerContainerExtraction(c_name, layer_ids)
     ii.transfer_container_artifacts(c_name)
 

@@ -54,7 +54,8 @@ class DockerContainerExtraction(DockerBaseApi):
         return (self.overlays_path()/layer_id/"link").read_text()
 
     def dst_target_dir_path(self):
-        #container_id = self.container_presence(container_name).id
+        if self._c_id is None:
+            self._c_id = self.container_presence(self._c_name).id
         return Path(DST_TARGET_DIR_PATH + '/' + self._c_id)
 
     def dst_target_dir_dict(self):
@@ -115,7 +116,7 @@ class DockerContainerExtraction(DockerBaseApi):
     def transfer_container_artifacts(self, container_name):
         dst_addr='10.24.129.91'
         layer_ids = self.get_container_layer_ids(container_name)
-        dst_base_path = self.dst_target_dir_path(container_name)
+        dst_base_path = self.dst_target_dir_path()
         con_dir = self.extract_container_related_artifacts(container_name, layer_ids)
         for tmp_d_name, d_name in con_dir.items():
             #print(tmp_d_name)
