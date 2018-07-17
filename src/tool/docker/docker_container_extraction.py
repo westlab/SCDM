@@ -1,6 +1,7 @@
 import docker
 import re
 import shutil
+import json
 from pathlib import Path
 
 from tool.docker.docker_base_api import DockerBaseApi
@@ -12,9 +13,27 @@ Extract components of Docker container
 """
 
 class DockerContainerExtraction(DockerBaseApi):
-    def __init__(self):
+    def __init__(self, i_layer_ids, c_layer_ids=None):
         super().__init__()
         self._lo_client = docker.APIClient()
+        self._i_layer_ids = i_layer_ids
+        self._c_layer_ids = c_layer_ids
+
+    @property
+    def image_layer_ids(self):
+        return self._i_layer_ids
+
+    @property
+    def container_layer_ids(self):
+        return self._c_layer_ids
+
+    @image_layer_ids.setter
+    def image_layer_ids(self, layer_ids):
+        self._i_layer_ids = layer_ids
+
+    @container_layer_ids.setter
+    def container_layer_ids(self, layer_ids):
+        self._c_layer_ids = layer_ids
 
     def overlays_path(self):
         return Path(OVERLAYER2_DIR_PATH)
@@ -37,18 +56,34 @@ class DockerContainerExtraction(DockerBaseApi):
         return Path(DST_TARGET_DIR_PATH + '/' + container_id)
 
     """
+    Create docker dst target directory
+    @params String container_name
+    @return True | Flase
+    """
+    def create_tmp_target_dir(self, container_name):
+        base_path = self.dst_target_dir_path(container_name)
+        try:
+            base_path.mkdir(parents=true)
+        except Exception as e:
+            print("create_tmp_target_dir args:", e.args)
+            return False
+        return True
+
+    """
     Get relation between container id and local container layer_id
     @params String container_name
     @return Array[String layer_id]
     """
-    def get_container_layer_ids(self, container_name):
+    def get_container_layer_ids(self, container_name, has_reload=True):
         layer_ids = []
         pattern = OVERLAYER2_DIR_PATH + '/(.*)/diff'
         reg = re.compile(pattern)
         layer_config = self._lo_client.inspect_container(container_name)['GraphDriver']['Data']
-        layer_ids.append(reg.match(layer_config['LowerDir'].split(':')[0]).group(1))
+        layer_ids.append(reg.match(layer_config['LowerDir'].split(':')[0]).group(1)) if 'LowerDir' in layer_config.keys() else None
         layer_ids.append(reg.match(layer_config['UpperDir']).group(1))
-        return layer_ids
+
+        if self._c_layer_ids is None:
+            self._c_layer_ids = layer_ids
 
     """
     Create symbolic links for container layer
@@ -58,13 +93,37 @@ class DockerContainerExtraction(DockerBaseApi):
     def create_symbolic_links(self, layer_ids):
         try: 
             for layer_id in layer_ids:
-                identifier = self.identifier_path(layer_id)
+                identifier_path = self.identifier_path(layer_id)
                 target_link = Path("../" + layer_id + "/diff")
                 identifier_path.touch()
                 identifier_path.symlink_to(target_link)
         except Exception as e:
-            print("args:", e.args)
+            print("create_symbolic_links args:", e.args)
             return False
+        return True
+
+    """
+    Get relation between layer_id and short_identifier
+    @return  Dict{Key: String image | container, Value: String short_identider}
+    """
+    def get_short_identifer_relations(self):
+        identifiers = {}
+        identifiers['image'] = [self.layer_short_identifier(i_layer_id) for i_layer_id in self._i_layer_ids]
+        if self._c_layer_ids is not None:
+            identifiers['container'] = [self.layer_short_identifier(c_layer_id) for c_layer_id in self._c_layer_ids if 'init' in c_layer_id]
+        return identifiers
+
+    """
+    ReWrite lower layer in overlay setting
+    @return True|False
+    """
+    def change_lower_layer_settings(self):
+        identifier = self.get_short_identifer_relations()
+        print(identifier)
+        for layer_id in self._c_layer_ids:
+            c_layer_path = self.overlays_path()/layer_id/'lower'
+            setting = 'l/' + ':l/'.join(identifier['image']) if 'init' in str(c_layer_path) else 'l/' + ':l/'.join(identifier['image'] + identifier['container'])
+            c_layer_path.write_text(setting)
         return True
 
     """
@@ -107,7 +166,7 @@ class DockerContainerExtraction(DockerBaseApi):
                 shutil.move(str(targe_path/tmp_d_name), d_name)
             self.create_symbolic_links(layer_ids)
         except Exception as e:
-            print("args:", e.args)
+            print("allocate_container_artifacts args:", e.args)
             return False
         return True
 

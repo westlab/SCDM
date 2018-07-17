@@ -72,12 +72,16 @@ def sync():
 
     image_name = "busybox"
     c_name = "cr_test"
-    #i = DockerLayer()
-    ii = DockerContainerExtraction()
+    i = DockerLayer()
     #i.execute_remapping(image_name)
-    ii.transfer_container_artifacts(c_name)
+    layer_ids = i.get_local_layer_ids(image_name)
+    ii = DockerContainerExtraction(layer_ids)
+    #ii.transfer_container_artifacts(c_name)
+    ii.get_container_layer_ids(c_name)
+    ii.get_short_identifer_relations()
+    ii.change_lower_layer_settings()
     #relations = ii.create_symbolic_links(layer_ids)
-    print(relations)
+    #print(relations)
 
 
 if __name__ == "__main__":
