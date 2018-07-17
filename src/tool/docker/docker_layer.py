@@ -48,7 +48,7 @@ class DockerLayer(DockerBaseApi):
                     local_cache_id_path = o_layer_id/"cache-id"
                     relations[local_cache_id_path.read_text().strip()] = o_layer_id.name.strip()
         except Exception as e:
-            print("args:", e.args)
+            print("get_layer_id_relations args:", e.args)
         return relations
 
     """
@@ -83,7 +83,7 @@ class DockerLayer(DockerBaseApi):
                     self.change_layer_dir_relation(o_layer_id, lo_layer_id)
             return True
         except Exception as e:
-            print("args:", e.args)
+            print("remap_local_layer_ids args:", e.args)
             return False
 
     """

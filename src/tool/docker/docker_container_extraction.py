@@ -84,7 +84,7 @@ class DockerContainerExtraction(DockerBaseApi):
 
         if self._c_layer_ids is None:
             self._c_layer_ids = layer_ids
-
+        return layer_ids
     """
     Create symbolic links for container layer
     @params Array[String layer_id]
