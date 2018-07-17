@@ -87,16 +87,15 @@ class DockerContainerExtraction(DockerBaseApi):
 
     """
     Create symbolic links for container layer
-    @params Array[String layer_id]
     @params True | False
     """
-    def create_symbolic_links(self, layer_ids):
+    def create_symbolic_links(self):
         try: 
-            for layer_id in layer_ids:
-                identifier_path = self.identifier_path(layer_id)
+            for layer_id in self._c_layer_ids:
+                base_path = self.identifier_path(layer_id)
                 target_link = Path("../" + layer_id + "/diff")
-                identifier_path.touch()
-                identifier_path.symlink_to(target_link)
+                #base_path.touch()
+                base_path.symlink_to(target_link)
         except Exception as e:
             print("create_symbolic_links args:", e.args)
             return False
