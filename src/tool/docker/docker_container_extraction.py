@@ -22,16 +22,16 @@ class DockerContainerExtraction(DockerBaseApi):
         self._c_layer_ids = c_layer_ids
 
     @property
-    def image_layer_ids(self):
+    def c_id(self):
         return self._i_layer_ids
 
     @property
     def container_layer_ids(self):
         return self._c_layer_ids
 
-    @image_layer_ids.setter
-    def image_layer_ids(self, layer_ids):
-        self._i_layer_ids = layer_ids
+    @c_id.setter
+    def image_layer_ids(self, c_id):
+        self._c_id = layer_ids
 
     @container_layer_ids.setter
     def container_layer_ids(self, layer_ids):
@@ -63,19 +63,15 @@ class DockerContainerExtraction(DockerBaseApi):
 
     """
     Get relation between container id and local container layer_id
-    @params String container_name
     @return Array[String layer_id]
     """
-    def get_container_layer_ids(self, container_name, has_reload=True):
+    def get_container_layer_ids(self):
         layer_ids = []
         pattern = OVERLAYER2_DIR_PATH + '/(.*)/diff'
         reg = re.compile(pattern)
-        layer_config = self._lo_client.inspect_container(container_name)['GraphDriver']['Data']
+        layer_config = self._lo_client.inspect_container(self._c_name)['GraphDriver']['Data']
         layer_ids.append(reg.match(layer_config['LowerDir'].split(':')[0]).group(1)) if 'LowerDir' in layer_config.keys() else None
         layer_ids.append(reg.match(layer_config['UpperDir']).group(1))
-
-        if self._c_layer_ids is None:
-            self._c_layer_ids = layer_ids
         return layer_ids
     """
     Get relation between layer_id and short_identifier
@@ -96,42 +92,36 @@ class DockerContainerExtraction(DockerBaseApi):
     @params String container_name
     @return Array[String dir_name]
     """
-    def extract_container_related_paths(self, container_name, layer_ids):
-        return  (self.extract_container_related_artifacts(container_name, layer_ids)).values()
+    def extract_container_related_paths(self):
+        return  (self.extract_container_related_artifacts()).values()
 
     """
     Return Dict, which stores container related paths with file name key
-    @params String container_name
-    @params Array[String layer_id]
     @returns Dict{ Key: String dir_name, Value: Path dir_name}
     """
-    def extract_container_related_artifacts(self, container_name, layer_ids):
+    def extract_container_related_artifacts(self):
         running_state_dict = self.dst_target_dir_dict()
-        running_state_dict['rootfs'] = [ self.overlays_path()/layer_id for layer_id in layer_ids if (self.overlays_path()/layer_id).name.isalnum()][0]
-        running_state_dict['rootfs-init'] = [ self.overlays_path()/layer_id for layer_id in layer_ids if not (self.overlays_path()/layer_id).name.isalnum()][0]
+        running_state_dict['rootfs'] = [ self.overlays_path()/layer_id for layer_id in self._c_layer_ids if (self.overlays_path()/layer_id).name.isalnum()][0]
+        running_state_dict['rootfs-init'] = [ self.overlays_path()/layer_id for layer_id in self._c_layer_ids if not (self.overlays_path()/layer_id).name.isalnum()][0]
         running_state_dict['containers'] = self.container_settings_path(self._c_id)
         running_state_dict['mounts'] = self.container_mount_settings_path()/self._c_id
         return running_state_dict
 
-    def transfer_container_artifacts(self, container_name):
-        dst_addr='10.24.129.91'
-        layer_ids = self.get_container_layer_ids(container_name)
+    def transfer_container_artifacts(self, dst_addr):
+        layer_ids = self.get_container_layer_ids()
         dst_base_path = self.dst_target_dir_path()
-        con_dir = self.extract_container_related_artifacts(container_name, layer_ids)
+        con_dir = self.extract_container_related_artifacts()
         for tmp_d_name, d_name in con_dir.items():
-            #print(tmp_d_name)
-            #print(d_name)
             src_path = str(d_name)
             dst_path = str(dst_base_path/tmp_d_name) + '/'
             is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=dst_addr)
 
     """
     Create docker dst target directory
-    @params String container_name
     @return True | Flase
     """
-    def create_tmp_target_dir(self, container_name):
-        base_path = self.dst_target_dir_path(container_name)
+    def create_tmp_target_dir(self):
+        base_path = self.dst_target_dir_path()
         try:
             base_path.mkdir(parents=true)
         except Exception as e:
@@ -168,17 +158,16 @@ class DockerContainerExtraction(DockerBaseApi):
 
     """
     Allocate tranfered files to original location
-    @params String container_name
-    @params Array[String layer_id]: src information
     @return True | False
     """
-    def allocate_container_artifacts(self, container_name):
-        target_path = self.dst_target_dir_path(container_name)
-        d = self.extract_container_related_artifacts(container_name, self._c_layer_ids)
+    def allocate_container_artifacts(self):
+        target_path = self.dst_target_dir_path()
+        d = self.extract_container_related_artifacts()
         try:
             for tmp_d_name, d_name in d.items():
                 shutil.move(str(target_path/tmp_d_name/d_name.name), str(d_name))
             self.create_symbolic_links()
+            self.change_lower_layer_settings()
         except Exception as e:
             print("allocate_container_artifacts args:", e.args)
             return False

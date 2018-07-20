@@ -74,18 +74,19 @@ def sync():
     c_name = "cr_test"
 
     #src
-    i = DockerLayer()
-    layer_ids = i.get_local_layer_ids(image_name)
-    #i.execute_remapping(image_name)
-    ii = DockerContainerExtraction(c_name, layer_ids)
-    ii.transfer_container_artifacts(c_name)
+    #i = DockerLayer()
+    #dst_addr='10.24.129.91'
+    #layer_ids = i.get_local_layer_ids(image_name)
+    ##i.execute_remapping(image_name)
+    #ii = DockerContainerExtraction(c_name, layer_ids)
+    #ii.transfer_container_artifacts(c_name)
 
     #dst
-    #c_id = None
-    #i = DockerLayer()
-    #layer_ids = i.get_local_layer_ids(image_name)
-    #ii = DockerContainerExtraction(c_name, layer_ids, ['8ffabcbcba88c824b403e0ece2480eba869fd9a98135e94024cfccd1b761f400-init', '8ffabcbcba88c824b403e0ece2480eba869fd9a98135e94024cfccd1b761f400'])
-    #ii.allocate_container_artifacts(c_name)
+    c_id = '97b8c43f61b30f83bc7a7ddb4302aa42cb6e682f9032159ea6b61c315c88a863'
+    i = DockerLayer()
+    layer_ids = i.get_local_layer_ids(image_name)
+    ii = DockerContainerExtraction(c_name, layer_ids, c_id=c_id, c_layer_ids=['258ff3804982fa669a511fba24dff99a5a0553ef208896bfde1139b5a4128026-init', '258ff3804982fa669a511fba24dff99a5a0553ef208896bfde1139b5a4128026'])
+    ii.allocate_container_artifacts()
     #ii.get_container_layer_ids(c_name)
 
 if __name__ == "__main__":
