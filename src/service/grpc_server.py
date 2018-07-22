@@ -5,6 +5,8 @@ import os
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
 from tool.docker.docker_api import DockerApi
+from tool.docker.docker_container_extraction import DockerContainerExtraction
+
 from tool.common.logging.logger_factory import LoggerFactory
 
 import tool.gRPC.docker_migration_pb2 as docker_migration_pb2
@@ -59,7 +61,6 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         self._logger.info('Reload docker daemon')
         status_code = CODE_SUCCESS if DockerApi.reload_daemon() is True else os.error.EHOSTDOWN
         return docker_migration_pb2.Status(code=status_code)
-
 
     """
     Request migration from src node to dst node following tasks:
@@ -122,6 +123,23 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         return docker_migration_pb2.Status(code=code)
 
     """
+    Move dir to designated dir
+    @params DockerDstSummary(String c_name,
+                             String c_id,
+                             Array  i_layer_ids,
+                            Array  c_layer_ids)
+    @return Status(Integer code)
+    """
+    def AllocateContainerArtifacts(self, req, context):
+        self._logger.info("Allocate container artifacts")
+        d_extractor = DockerContainerExtraction(req.container_name, 
+                                                req.container_id,
+                                                req.image_layer_ids,
+                                                req.container_layer_ids)
+        code = CODE_SUCCESS if d_extractor.allocate_container_artifacts() is True else CODE_NO_IMAGE
+        return docker_migration_pb2.Status(code=code)
+
+    """
     Create a container create,
     and if the host has not the container, host will pull it
     @params DockerSummary(String image_name,
@@ -171,3 +189,4 @@ def serve(addr, port):
 
 if __name__ == '__main__':
     serve()
+

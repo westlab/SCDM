@@ -63,10 +63,10 @@ class MigrationWorker:
         #if has_sent is not True:
         #    return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         #self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
-        DockerLayer.reload_daemon()
+        #DockerLayer.reload_daemon()
         # 5. Restore the App based on the data
         self._logger.info("Restore container at dst host")
-        code = rpc_client.restore(self._c_name)
+        #code = rpc_client.restore(self._c_name)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')

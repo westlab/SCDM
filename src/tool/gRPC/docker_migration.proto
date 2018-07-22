@@ -10,7 +10,7 @@ service  DockerMigrator {
     rpc InspectArtifacts (DockerSummary) returns (Status) {}
     rpc CreateContainer (DockerSummary) returns (Status) {}
     rpc ReloadDockerd (DockerSummary) returns (Status) {}
-
+    rpc AllocateContainerArtifacts (ContainerArtifacts) returns (Status) {}
     // A server-to-client streaming RPC
     rpc RequestMigration (DockerSummary) returns (stream Status) {}
 }
@@ -29,6 +29,14 @@ message ContainerOptions {
     string container_name = 1;
     Port port = 2;
     //TODO: additional options such as volumes, shm_size...etc...
+}
+
+
+message ContainerArtifacts {
+    string container_name = 1;
+    string container_id=2;
+    repeated string image_layer_ids=3;
+    repeated string container_layer_ids=4;
 }
 
 message Port {
