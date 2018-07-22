@@ -56,13 +56,13 @@ class MigrationWorker:
         # 2. checkpoint docker container
         # 3. tranfer tranfer the container artifacts
         # TODO: before checkpoint, check signal is changed
-        #has_checkpointed = self._d_cli.checkpoint(self._c_name)
-        #if has_checkpointed is not True:
-        #    return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        has_checkpointed = self._d_cli.checkpoint(self._c_name)
+        if has_checkpointed is not True:
+            return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         #has_sent = self.send_checkpoint(c_id=self._d_cli.container_presence(self._c_name))
-        #if has_sent is not True:
-        #    return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
-        #self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        if has_sent is not True:
+            return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         #DockerLayer.reload_daemon()
         # 5. Restore the App based on the data
         code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
@@ -70,11 +70,10 @@ class MigrationWorker:
                                                        self._d_c_extractor.i_layer_ids,
                                                        self._d_c_extractor.c_layer_ids)
         self._logger.info("Restore container at dst host")
-        #code = rpc_client.restore(self._c_name)
+        code = rpc_client.restore(self._c_name)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
-        return 'hoge'
 
 
 
