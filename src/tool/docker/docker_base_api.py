@@ -4,6 +4,7 @@ import configparser
 import json
 import subprocess as sp
 
+from tool.common.logging.logger_factory import LoggerFactory
 from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
 
 class DockerBaseApi:
@@ -257,3 +258,4 @@ class DockerBaseApi:
     """
     def port_protocol_converter(self, port, protocol='tcp'):
         return str(port) + '/' + protocol
+

@@ -5,23 +5,28 @@ from datetime import datetime
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
 from tool.common.rsync import Rsync
+from tool.docker.docker_layer import DockerLayer
+from tool.docker.docker_container_extraction import DockerContainerExtraction
 from tool.gRPC.grpc_client import RpcClient
 
 class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
     ORDER_OF_REQUEST_MIGRATION = 2
 
-    def __init__(self, cli, i_name, version, c_name, cp_name, m_opt, c_opt):
+    def __init__(self, cli, i_name, version, c_name, m_opt, c_opt):
         config = configparser.ConfigParser()
         config.read(DOCKER_BASIC_SETTINGS_PATH)
+        i_layer_manager = DockerLayer()
 
         self._logger = LoggerFactory.create_logger(self)
         self._d_cli = cli
+        self._d_c_extractor = DockerContainerExtraction(c_name, cli.container_presence(c_name).id,
+                i_layer_manager.get_local_layer_ids(i_name),
+                i_layer_manager.get_container_layer_ids(c_name))
         self._d_config = config
         self._i_name = i_name
         self._version = version
         self._c_name = c_name
-        self._cp_name = cp_name
         self._m_opt = m_opt
         self._c_opt = c_opt
 
@@ -125,7 +130,6 @@ class MigrationWorker:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
         """
-
 
     """
     Checkpoint and send checkpoint data to dst host

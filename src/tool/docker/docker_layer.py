@@ -11,10 +11,6 @@ from settings.docker import OVERLAYER2_DIR_PATH, LAYERDB_DIR_PATH, IMAGEDB_DIR_P
 Manage Docker Image and Container Layers
 """
 
-LAYERDB_DIR_PATH="/var/lib/docker/image/overlay2/layerdb"
-OVERLAYER2_DIR_PATH="/var/lib/docker/overlay2"
-
-
 class DockerLayer(DockerBaseApi):
     def __init__(self):
         super().__init__()
@@ -64,6 +60,19 @@ class DockerLayer(DockerBaseApi):
         local_layer_ids = [ reg.match(local_layer).group(1) for local_layer in layer_config['LowerDir'].split(':')] if 'LowerDir' in layer_config.keys() else []
         local_layer_ids.append(reg.match(layer_config['UpperDir']).group(1))
         return local_layer_ids
+
+    """
+    Get relation between container id and local container layer_id
+    @return Array[String layer_id]
+    """
+    def get_container_layer_ids(self, c_name):
+        layer_ids = []
+        pattern = OVERLAYER2_DIR_PATH + '/(.*)/diff'
+        reg = re.compile(pattern)
+        layer_config = self._lo_client.inspect_container(c_name)['GraphDriver']['Data']
+        layer_ids.append(reg.match(layer_config['LowerDir'].split(':')[0]).group(1)) if 'LowerDir' in layer_config.keys() else None
+        layer_ids.append(reg.match(layer_config['UpperDir']).group(1))
+        return layer_ids
 
     """
     Remap local-layer-id to original-layer-id for designated layer_ids
@@ -126,4 +135,14 @@ class DockerLayer(DockerBaseApi):
         relations = self.get_layer_id_relations()
         local_ids = self.get_local_layer_ids(image_name)
         self.remap_local_layer_ids(local_ids, relations)
+
+    """
+    Execute remapinng tasks all images in host
+    """
+    @classmethod
+    def execute_all_remapping(cls):
+        #self._logger.info("Execute remapping all images")
+        #images = self._client.images.list()
+        #[ self.execute_remapping(image.tags[0]) for image in images]
+        print('hoge')
 
