@@ -1,12 +1,14 @@
 from flask import Blueprint, request, json, Response
 
 from tool.docker.docker_api import DockerApi
+from tool.docker.docker_layer import DockerLayer
 from tool.migration_worker import MigrationWorker
 from tool.common.time_recorder import TimeRecorder
 
 v1 = Blueprint('v1', __name__)
 docker_api = DockerApi()
 docker_api.login()
+DockerLayer.execute_all_remapping()
 
 @v1.route("/test")
 def test():
@@ -18,13 +20,23 @@ def test():
 
 @v1.route("/docker/check", methods=['GET'])
 def check():
-    recorder = TimeRecorder('check', ['total_time', 'check'])
-    recorder.track(0)
-    recorder.track(1)
-    is_alive = docker_api.ping()
-    recorder.track(1)
-    recorder.track(0)
-    recorder.write()
+    checkpoint_option_keys = ['ports']
+    migration_option_keys = ['host', 'dst_addr']
+    image_name = 'busybox'
+    container_name = 'cr_test'
+    version = 'version'
+
+    ports =[]
+    dst_addr = '10.24.129.91'
+    host = 'miura'
+    checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
+    migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
+    worker = MigrationWorker(cli=docker_api,
+                             i_name=image_name, version=version, c_name=container_name,
+                             m_opt=migration_option, c_opt=checkpoint_option)
+    data = worker.run()
+    is_alive = True
+
     return Response(json.dumps({'server': is_alive}),
                     mimetype='application/json')
 
@@ -34,7 +46,6 @@ def ping():
     rpc_client = RpcClient("10.24.129.91")
     rpc_client.ping()
     return "hello from api.py"
-
 
 @v1.route("/docker/inspect", methods=['GET'])
 def inspect():

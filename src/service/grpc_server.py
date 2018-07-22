@@ -36,7 +36,6 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         LoggerFactory.init()
         self._cli = DockerApi()
         self._logger = LoggerFactory.create_logger(self)
-
         self._cli.login()
 
     """

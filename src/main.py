@@ -45,8 +45,27 @@ def rpc_server():
     grpc_server.serve(addr, port)
 
 def rpc_client():
-    from tool.gRPC import grpc_client
-    grpc_client.run()
+    from tool.migration_worker import MigrationWorker
+    from tool.docker.docker_api import DockerApi
+
+    docker_api = DockerApi()
+    docker_api.login()
+
+    checkpoint_option_keys = ['ports']
+    migration_option_keys = ['host', 'dst_addr']
+    image_name = 'busybox'
+    container_name = 'cr_test'
+    version = 'latest'
+
+    ports =[]
+    dst_addr = '10.24.129.91'
+    host = 'miura'
+    checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
+    migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
+    worker = MigrationWorker(cli=docker_api,
+                             i_name=image_name, version=version, c_name=container_name,
+                             m_opt=migration_option, c_opt=checkpoint_option)
+    data = worker.run()
 
 def codegen():
     from service import codegen
