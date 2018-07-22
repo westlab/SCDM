@@ -30,5 +30,7 @@ class Rsync:
             #print(cmd)
             sp.run(cmd.strip().split(" "), check=True)
             return True
-        except:
+        except Exception as e:
+            print('args:', e.args)
             return False
+

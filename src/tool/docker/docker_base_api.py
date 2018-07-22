@@ -13,6 +13,17 @@ class DockerBaseApi:
         config.read(DOCKER_BASIC_SETTINGS_PATH)
         self._client = docker.from_env()
         self._basic_config = config
+        self._logger = LoggerFactory.create_logger(self)
+
+    @classmethod
+    def reload_daemon(cls):
+        cmd = 'systemctl restart docker'
+        try:
+            sp.run(cmd.strip().split(' '), check=True)
+            return True
+        except Exception as e:
+            print("args:", e.args)
+            return False
 
     """
     Log in specific Dockerhub repo

@@ -12,6 +12,10 @@ class RpcClient:
         status = self._stub.PingDockerServer(docker_migration_pb2.Signal(name='default'))
         return status.code
 
+    def docker_reload(self):
+        status = self._stub.ReloadDockerd(docker_migration_pb2.Signal(name='default'))
+        return status.code
+
     def restore(self, c_name):
         status = self._stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name=c_name))
         return status.code
@@ -28,7 +32,6 @@ class RpcClient:
         status_with_c_id = self._stub.CreateContainer(docker_migration_pb2.DockerSummary(image_name=i_name, version=version, options=c_opt))
         return  status_with_c_id
 
-
     def request_migration(self, i_name, version, c_name, c_opt):
         port = docker_migration_pb2.Port(host=9999, container=9999)
         c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name, port=port)
@@ -36,4 +39,3 @@ class RpcClient:
                                                                              version=version,
                                                                              options=c_opt))
         return gen
-

@@ -51,6 +51,17 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         return docker_migration_pb2.Status(code=status_code)
 
     """
+    Reload Docker daemon
+    @params request
+    @return Status(Integer code)
+    """
+    def ReloadDockerd(self, request, context):
+        self._logger.info('Reload docker daemon')
+        status_code = CODE_SUCCESS if DockerApi.reload_daemon() is True else os.error.EHOSTDOWN
+        return docker_migration_pb2.Status(code=status_code)
+
+
+    """
     Request migration from src node to dst node following tasks:
     1. Inspect local image and container belongings, and Return results
     2. Fetch Image if host has not the image
