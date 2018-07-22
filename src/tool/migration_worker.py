@@ -41,7 +41,43 @@ class MigrationWorker:
     @return True|False`
     """
     def run(self):
-        self._logger.info("Init RPC client")
+        self._logger.info("run: Init RPC client")
+        rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
+        #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
+        tag = self.tag_creator()
+
+        # 1. Inspec Images
+        code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
+        # inspect existence of docker image in dockerhub
+        #if code == CODE_NO_IMAGE:
+            # if it exists, dst will pull the image
+            # if it does not exists, src pushes the image
+
+        # 2. checkpoint docker container
+        # 3. tranfer tranfer the container artifacts
+        # TODO: before checkpoint, check signal is changed
+        #has_checkpointed = self._d_cli.checkpoint(self._c_name)
+        #if has_checkpointed is not True:
+        #    return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        #has_sent = self.send_checkpoint(c_id=self._d_cli.container_presence(self._c_name))
+        #if has_sent is not True:
+        #    return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        #self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        DockerLayer.reload_daemon()
+        # 5. Restore the App based on the data
+        self._logger.info("Restore container at dst host")
+        code = rpc_client.restore(self._c_name)
+        if code != CODE_SUCCESS:
+            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        return self.returned_data_creator('fin')
+
+
+        return 'hoge'
+
+
+
+    def run_with_image_migration(self):
+        self._logger.info("run_with_image_migration: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
         tag = self.tag_creator()
@@ -49,14 +85,12 @@ class MigrationWorker:
         # 1. Inspect images
         code = rpc_client.inspect(i_name=repo, version=tag, c_name=self._c_name)
         if code == CODE_NO_IMAGE:
-            image = self._d_cli.commit(c_name=self._c_name, repository=repo, tag=tag)
-            if image is not None:
-                self._logger.info("Push Docker repo:{0}, tag:{1}".format(repo, tag))
-                has_pushed = self._d_cli.push(repository=repo, tag=tag)
-                if has_pushed is False:
-                    return self.returned_data_creator('push')
-            else:
-                return self.returned_data_creator('commit')
+            self._logger.info("Push Docker repo:{0}, tag:{1}".format(repo, tag))
+            has_pushed = self._d_cli.push(repository=repo, tag=tag)
+            if has_pushed is False:
+                return self.returned_data_creator('push')
+        else:
+            return self.returned_data_creator('commit')
 
         # 2. Fetch Docker image from docker hub, and Create a containeri
         # 3. Create checkpoints
@@ -64,7 +98,7 @@ class MigrationWorker:
         status_with_c_id = rpc_client.create_container(i_name=repo, version=tag, c_name=self._c_name)
         if status_with_c_id.code == CODE_SUCCESS:
             self._logger.info("Checkpoint running container")
-            has_checkpointed = self._d_cli.checkpoint(self._c_name, self._cp_name)
+            has_checkpointed = self._d_cli.checkpoint(self._c_name)
             has_sent = self.send_checkpoint(c_id=status_with_c_id.c_id)
 
             if has_checkpointed is not True:
