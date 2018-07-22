@@ -21,6 +21,22 @@ class DockerContainerExtraction(DockerBaseApi):
         self._i_layer_ids = i_layer_ids
         self._c_layer_ids = c_layer_ids
 
+    @property
+    def c_name(self):
+        return self._c_name
+
+    @property
+    def c_id(self):
+        return self._c_id
+
+    @property
+    def i_layer_ids(self):
+        return self._i_layer_ids
+
+    @property
+    def c_layer_ids(self):
+        return self._c_layer_ids
+
     def overlays_path(self):
         return Path(OVERLAYER2_DIR_PATH)
 

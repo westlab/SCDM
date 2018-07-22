@@ -38,7 +38,7 @@ class MigrationWorker:
     4. Send checkpoints to dst host
     5. Restore the App based on the data
 
-    @return True|False`
+    @return True|False
     """
     def run(self):
         self._logger.info("run: Init RPC client")
@@ -65,13 +65,15 @@ class MigrationWorker:
         #self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
         #DockerLayer.reload_daemon()
         # 5. Restore the App based on the data
+        code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
+                                                       self._d_c_extractor.c_id,
+                                                       self._d_c_extractor.i_layer_ids,
+                                                       self._d_c_extractor.c_layer_ids)
         self._logger.info("Restore container at dst host")
         #code = rpc_client.restore(self._c_name)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
-
-
         return 'hoge'
 
 

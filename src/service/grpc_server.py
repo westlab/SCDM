@@ -136,6 +136,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
                                                 req.container_id,
                                                 req.image_layer_ids,
                                                 req.container_layer_ids)
+        DockerContainerExtraction.reload_daemon()
         code = CODE_SUCCESS if d_extractor.allocate_container_artifacts() is True else CODE_NO_IMAGE
         return docker_migration_pb2.Status(code=code)
 

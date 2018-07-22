@@ -36,7 +36,7 @@ class RpcClient:
         status = self._stub.AllocateContainerArtifacts(docker_migration_pb2.ContainerArtifacts(container_name=c_name, 
                                                                                                container_id=c_id,
                                                                                                image_layer_ids=i_layer_ids,
-                                                                                               container_layser_ids=c_layer_ids))
+                                                                                               container_layer_ids=c_layer_ids))
         return status.code
 
     def request_migration(self, i_name, version, c_name, c_opt):
