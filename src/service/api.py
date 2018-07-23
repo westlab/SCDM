@@ -15,28 +15,11 @@ def test():
     repo = 'tatsukitatsuki/busybox'
     tag = '20180403_185150'
     hoge = docker_api.push(repo, tag)
-    print(hoge)
     return "hello from api.py"
 
 @v1.route("/docker/check", methods=['GET'])
 def check():
-    checkpoint_option_keys = ['ports']
-    migration_option_keys = ['host', 'dst_addr']
-    image_name = 'busybox'
-    container_name = 'cr_test'
-    version = 'version'
-
-    ports =[]
-    dst_addr = '10.24.129.91'
-    host = 'miura'
-    checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
-    migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
-    worker = MigrationWorker(cli=docker_api,
-                             i_name=image_name, version=version, c_name=container_name,
-                             m_opt=migration_option, c_opt=checkpoint_option)
-    data = worker.run()
-    is_alive = True
-
+    is_alive = docker_api.ping()
     return Response(json.dumps({'server': is_alive}),
                     mimetype='application/json')
 
@@ -74,7 +57,6 @@ def migrate():
     dst_addr = request.form[migration_option_keys[1]]
     host = request.form.get(migration_option_keys[0], 'host')
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
-
 
     worker = MigrationWorker(cli=docker_api,
                              i_name=image_name, version=version, c_name=container_name,
