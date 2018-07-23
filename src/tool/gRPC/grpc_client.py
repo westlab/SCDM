@@ -17,7 +17,7 @@ class RpcClient:
         return status.code
 
     def create_tmp_dir(self, c_id):
-        status = self._stub.CreateTmpDir(docker_migration_pb2.Singal(name=c_id))
+        status = self._stub.CreateTmpDir(docker_migration_pb2.Signal(name=c_id))
         return status.code
 
     def restore(self, c_name):

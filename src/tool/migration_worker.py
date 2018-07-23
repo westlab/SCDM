@@ -20,9 +20,8 @@ class MigrationWorker:
 
         self._logger = LoggerFactory.create_logger(self)
         self._d_cli = cli
-        self._d_c_extractor = DockerContainerExtraction(c_name, cli.container_presence(c_name).id,
-                i_layer_manager.get_local_layer_ids(i_name),
-                i_layer_manager.get_container_layer_ids(c_name))
+        self._c_id = cli.container_presence(c_name).id
+        self._d_c_extractor = DockerContainerExtraction(c_name, self._c_id,i_layer_manager.get_local_layer_ids(i_name),i_layer_manager.get_container_layer_ids(c_name))
         self._d_config = config
         self._i_name = i_name
         self._version = version
@@ -48,7 +47,6 @@ class MigrationWorker:
 
         #1. Inspec Images
         code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
-        print(code)
         # inspect existence of docker image in dockerhub
         #if code == CODE_NO_IMAGE:
             # if it exists, dst will pull the image

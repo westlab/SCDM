@@ -147,7 +147,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def CreateTmpDir(self, req, context):
         self._logger.info("Create temporary directory for container")
-        is_success = DockerContainerExtraction.create_tmp_target_dir(c_id=req.name)
+        is_success = DockerContainerExtraction.create_target_tmp_dir(c_id=req.name)
         code = CODE_SUCCESS if is_success is True else CODE_NO_IMAGE
         return docker_migration_pb2.Status(code=code)
 
