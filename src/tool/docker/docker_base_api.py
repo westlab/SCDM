@@ -18,7 +18,6 @@ class DockerBaseApi:
 
     @classmethod
     def reload_daemon(cls):
-        self._logger.info("Reload docker daemon")
         cmd = 'sudo systemctl restart docker'
         try:
             sp.run(cmd.strip().split(' '), check=True)
