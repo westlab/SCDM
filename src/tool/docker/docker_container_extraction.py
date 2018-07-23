@@ -2,6 +2,7 @@ import docker
 import re
 import shutil
 import json
+import os
 from pathlib import Path
 
 from tool.docker.docker_base_api import DockerBaseApi
@@ -69,8 +70,10 @@ class DockerContainerExtraction(DockerBaseApi):
         base_path = Path(DST_TARGET_DIR_PATH)
         if not base_path.exists():
             base_path.mkdir()
+            os.chmod(str(base_path),0777)
         try:
             (base_path/c_id).mkdir(mode=0o777)
+            os.chmod(str((base_path/c_id)), 0777)
         except Exception as e:
             print("create_tmp_target_dir args:", e.args)
             return False
