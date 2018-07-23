@@ -45,8 +45,27 @@ def rpc_server():
     grpc_server.serve(addr, port)
 
 def rpc_client():
-    from tool.gRPC import grpc_client
-    grpc_client.run()
+    from tool.migration_worker import MigrationWorker
+    from tool.docker.docker_api import DockerApi
+
+    docker_api = DockerApi()
+    docker_api.login()
+
+    checkpoint_option_keys = ['ports']
+    migration_option_keys = ['host', 'dst_addr']
+    image_name = 'busybox'
+    container_name = 'cr_test'
+    version = 'latest'
+
+    ports =[]
+    dst_addr = '10.24.129.91'
+    host = 'miura'
+    checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
+    migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
+    worker = MigrationWorker(cli=docker_api,
+                             i_name=image_name, version=version, c_name=container_name,
+                             m_opt=migration_option, c_opt=checkpoint_option)
+    data = worker.run()
 
 def codegen():
     from service import codegen
@@ -70,23 +89,27 @@ def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
 
-    image_name = "busybox"
+    image_name = "tatsuki/test"
     c_name = "cr_test"
+
+    c_id = '546fd2f98b5a4f54c8824c007f1d5a4cee5a6ed762e24bc16382ed72495fd94d'
+    is_success = DockerContainerExtraction.create_target_tmp_dir(c_id)
+    print(is_success)
 
     #src
     #i = DockerLayer()
     #dst_addr='10.24.129.91'
     #layer_ids = i.get_local_layer_ids(image_name)
-    ##i.execute_remapping(image_name)
+    #i.execute_remapping(image_name)
     #ii = DockerContainerExtraction(c_name, layer_ids)
     #ii.transfer_container_artifacts(c_name)
 
     #dst
-    c_id = '97b8c43f61b30f83bc7a7ddb4302aa42cb6e682f9032159ea6b61c315c88a863'
-    i = DockerLayer()
-    layer_ids = i.get_local_layer_ids(image_name)
-    ii = DockerContainerExtraction(c_name, layer_ids, c_id=c_id, c_layer_ids=['258ff3804982fa669a511fba24dff99a5a0553ef208896bfde1139b5a4128026-init', '258ff3804982fa669a511fba24dff99a5a0553ef208896bfde1139b5a4128026'])
-    ii.allocate_container_artifacts()
+    #c_id = '97b8c43f61b30f83bc7a7ddb4302aa42cb6e682f9032159ea6b61c315c88a863'
+    #i = DockerLayer()
+    #layer_ids = i.get_local_layer_ids(image_name)
+    #ii = DockerContainerExtraction(c_name, layer_ids, c_id=c_id, c_layer_ids=['258ff3804982fa669a511fba24dff99a5a0553ef208896bfde1139b5a4128026-init', '258ff3804982fa669a511fba24dff99a5a0553ef208896bfde1139b5a4128026'])
+    #ii.allocate_container_artifacts()
     #ii.get_container_layer_ids(c_name)
 
 if __name__ == "__main__":

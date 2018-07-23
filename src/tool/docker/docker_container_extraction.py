@@ -2,6 +2,7 @@ import docker
 import re
 import shutil
 import json
+import os
 from pathlib import Path
 
 from tool.docker.docker_base_api import DockerBaseApi
@@ -13,7 +14,7 @@ Extract components of Docker container
 """
 
 class DockerContainerExtraction(DockerBaseApi):
-    def __init__(self, c_name, i_layer_ids, c_id=None, c_layer_ids=None):
+    def __init__(self, c_name, c_id, i_layer_ids, c_layer_ids):
         super().__init__()
         self._lo_client = docker.APIClient()
         self._c_name = c_name
@@ -22,20 +23,20 @@ class DockerContainerExtraction(DockerBaseApi):
         self._c_layer_ids = c_layer_ids
 
     @property
+    def c_name(self):
+        return self._c_name
+
+    @property
     def c_id(self):
+        return self._c_id
+
+    @property
+    def i_layer_ids(self):
         return self._i_layer_ids
 
     @property
-    def container_layer_ids(self):
+    def c_layer_ids(self):
         return self._c_layer_ids
-
-    @c_id.setter
-    def image_layer_ids(self, c_id):
-        self._c_id = layer_ids
-
-    @container_layer_ids.setter
-    def container_layer_ids(self, layer_ids):
-        self._c_layer_ids = layer_ids
 
     def overlays_path(self):
         return Path(OVERLAYER2_DIR_PATH)
@@ -62,17 +63,22 @@ class DockerContainerExtraction(DockerBaseApi):
         return dict.fromkeys(['rootfs', 'rootfs-init', 'mounts','containers'])
 
     """
-    Get relation between container id and local container layer_id
-    @return Array[String layer_id]
+    Create temporary directory for storing container artifacts
     """
-    def get_container_layer_ids(self):
-        layer_ids = []
-        pattern = OVERLAYER2_DIR_PATH + '/(.*)/diff'
-        reg = re.compile(pattern)
-        layer_config = self._lo_client.inspect_container(self._c_name)['GraphDriver']['Data']
-        layer_ids.append(reg.match(layer_config['LowerDir'].split(':')[0]).group(1)) if 'LowerDir' in layer_config.keys() else None
-        layer_ids.append(reg.match(layer_config['UpperDir']).group(1))
-        return layer_ids
+    @classmethod
+    def create_target_tmp_dir(cls, c_id):
+        base_path = Path(DST_TARGET_DIR_PATH)
+        if not base_path.exists():
+            base_path.mkdir()
+            os.chmod(str(base_path), 0o777)
+        try:
+            (base_path/c_id).mkdir(mode=0o777)
+            os.chmod(str((base_path/c_id)), 0o777)
+        except Exception as e:
+            print("create_tmp_target_dir args:", e.args)
+            return False
+        return True
+
     """
     Get relation between layer_id and short_identifier
     @return  Dict{Key: String image | container, Value: String short_identider}
@@ -108,26 +114,19 @@ class DockerContainerExtraction(DockerBaseApi):
         return running_state_dict
 
     def transfer_container_artifacts(self, dst_addr):
-        layer_ids = self.get_container_layer_ids()
         dst_base_path = self.dst_target_dir_path()
         con_dir = self.extract_container_related_artifacts()
+        arr = []
         for tmp_d_name, d_name in con_dir.items():
             src_path = str(d_name)
             dst_path = str(dst_base_path/tmp_d_name) + '/'
             is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=dst_addr)
+            arr.append(is_success)
 
-    """
-    Create docker dst target directory
-    @return True | Flase
-    """
-    def create_tmp_target_dir(self):
-        base_path = self.dst_target_dir_path()
-        try:
-            base_path.mkdir(parents=true)
-        except Exception as e:
-            print("create_tmp_target_dir args:", e.args)
+        if all(arr):
+            return True
+        else:
             return False
-        return True
 
     """
     ReWrite lower layer in overlay setting

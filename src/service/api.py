@@ -1,30 +1,25 @@
 from flask import Blueprint, request, json, Response
 
 from tool.docker.docker_api import DockerApi
+from tool.docker.docker_layer import DockerLayer
 from tool.migration_worker import MigrationWorker
 from tool.common.time_recorder import TimeRecorder
 
 v1 = Blueprint('v1', __name__)
 docker_api = DockerApi()
 docker_api.login()
+DockerLayer.execute_all_remapping()
 
 @v1.route("/test")
 def test():
     repo = 'tatsukitatsuki/busybox'
     tag = '20180403_185150'
     hoge = docker_api.push(repo, tag)
-    print(hoge)
     return "hello from api.py"
 
 @v1.route("/docker/check", methods=['GET'])
 def check():
-    recorder = TimeRecorder('check', ['total_time', 'check'])
-    recorder.track(0)
-    recorder.track(1)
     is_alive = docker_api.ping()
-    recorder.track(1)
-    recorder.track(0)
-    recorder.write()
     return Response(json.dumps({'server': is_alive}),
                     mimetype='application/json')
 
@@ -34,7 +29,6 @@ def ping():
     rpc_client = RpcClient("10.24.129.91")
     rpc_client.ping()
     return "hello from api.py"
-
 
 @v1.route("/docker/inspect", methods=['GET'])
 def inspect():
@@ -63,7 +57,6 @@ def migrate():
     dst_addr = request.form[migration_option_keys[1]]
     host = request.form.get(migration_option_keys[0], 'host')
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
-
 
     worker = MigrationWorker(cli=docker_api,
                              i_name=image_name, version=version, c_name=container_name,

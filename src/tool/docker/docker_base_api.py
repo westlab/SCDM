@@ -4,6 +4,7 @@ import configparser
 import json
 import subprocess as sp
 
+from tool.common.logging.logger_factory import LoggerFactory
 from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
 
 class DockerBaseApi:
@@ -13,6 +14,17 @@ class DockerBaseApi:
         config.read(DOCKER_BASIC_SETTINGS_PATH)
         self._client = docker.from_env()
         self._basic_config = config
+        self._logger = LoggerFactory.create_logger(self)
+
+    @classmethod
+    def reload_daemon(cls):
+        cmd = 'sudo systemctl restart docker'
+        try:
+            sp.run(cmd.strip().split(' '), check=True)
+            return True
+        except Exception as e:
+            print("args:", e.args)
+            return False
 
     """
     Log in specific Dockerhub repo
@@ -176,7 +188,7 @@ class DockerBaseApi:
     #@params Boolean leave_running
     @return True|False
     """
-    def checkpoint(self, c_name, cp_name='checkpoint'):
+    def checkpoint(self, c_name, cp_name='checkpoint1'):
         #cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
         cmd='docker checkpoint create {c_name} {cp_name}'.format(c_name=c_name, cp_name=cp_name)
         try:
@@ -194,7 +206,7 @@ class DockerBaseApi:
     @params String cp_name='checkpoint'
     @return True|False
     """
-    def restore(self, c_name, cp_name='checkpoint'):
+    def restore(self, c_name, cp_name='checkpoint1'):
         try:
             c= self.container_presence(c_name)
             if c is not None:
@@ -246,3 +258,4 @@ class DockerBaseApi:
     """
     def port_protocol_converter(self, port, protocol='tcp'):
         return str(port) + '/' + protocol
+
