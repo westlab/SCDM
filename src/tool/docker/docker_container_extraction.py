@@ -70,7 +70,7 @@ class DockerContainerExtraction(DockerBaseApi):
         if not base_path.exists():
             base_path.mkdir()
         try:
-            (base_path/c_id).mkdir()
+            (base_path/c_id).mkdir(mode=0o777)
         except Exception as e:
             print("create_tmp_target_dir args:", e.args)
             return False

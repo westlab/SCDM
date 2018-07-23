@@ -59,7 +59,7 @@ class MigrationWorker:
         if has_checkpointed is not True:
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         has_create_tmp_dir = rpc_client.create_tmp_dir(self._c_id)
-        if has_create_tmp_dir is not True:
+        if has_create_tmp_dir is not CODE_SUCCESS:
             #TODO: fix
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])

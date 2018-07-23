@@ -92,8 +92,9 @@ def sync():
     image_name = "tatsuki/test"
     c_name = "cr_test"
 
-    c_id = 'e556c447a2a6d440afdd36a0def918729582a5c378bf74d17f5afae1ac16d414'
-    DockerContainerExtraction.create_target_tmp_dir(c_id)
+    c_id = '546fd2f98b5a4f54c8824c007f1d5a4cee5a6ed762e24bc16382ed72495fd94d'
+    is_success = DockerContainerExtraction.create_target_tmp_dir(c_id)
+    print(is_success)
 
     #src
     #i = DockerLayer()
