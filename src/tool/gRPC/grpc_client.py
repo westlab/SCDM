@@ -16,6 +16,10 @@ class RpcClient:
         status = self._stub.ReloadDockerd(docker_migration_pb2.Signal(name='default'))
         return status.code
 
+    def create_tmp_dir(self, c_id):
+        status = self._stub.CreateTmpDir(docker_migration_pb2.Singal(name=c_id))
+        return status.code
+
     def restore(self, c_name):
         status = self._stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name=c_name))
         return status.code

@@ -62,6 +62,21 @@ class DockerContainerExtraction(DockerBaseApi):
         return dict.fromkeys(['rootfs', 'rootfs-init', 'mounts','containers'])
 
     """
+    Create temporary directory for storing container artifacts
+    """
+    @classmethod
+    def create_target_tmp_dir(cls, c_id):
+        base_path = Path(DST_TARGET_DIR_PATH)
+        if not base_path.exists():
+            base_path.mkdir()
+        try:
+            (base_path/c_id).mkdir()
+        except Exception as e:
+            print("create_tmp_target_dir args:", e.args)
+            return False
+        return True
+
+    """
     Get relation between layer_id and short_identifier
     @return  Dict{Key: String image | container, Value: String short_identider}
     """
@@ -109,19 +124,6 @@ class DockerContainerExtraction(DockerBaseApi):
             return True
         else:
             return False
-
-    """
-    Create docker dst target directory
-    @return True | Flase
-    """
-    def create_tmp_target_dir(self):
-        base_path = self.dst_target_dir_path()
-        try:
-            base_path.mkdir(parents=true)
-        except Exception as e:
-            print("create_tmp_target_dir args:", e.args)
-            return False
-        return True
 
     """
     ReWrite lower layer in overlay setting

@@ -141,6 +141,17 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         return docker_migration_pb2.Status(code=code)
 
     """
+    Create temporary directory for storing container runnning artifacts 
+    @params Signal(String name)
+    @return Status(Integer code
+    """
+    def CreateTmpDir(self, req, context):
+        self._logger.info("Create temporary directory for container")
+        is_success = DockerContainerExtraction.create_tmp_target_dir(c_id=req.name)
+        code = CODE_SUCCESS if is_success is True else CODE_NO_IMAGE
+        return docker_migration_pb2.Status(code=code)
+
+    """
     Create a container create,
     and if the host has not the container, host will pull it
     @params DockerSummary(String image_name,

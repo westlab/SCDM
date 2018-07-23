@@ -92,11 +92,14 @@ def sync():
     image_name = "tatsuki/test"
     c_name = "cr_test"
 
+    c_id = 'e556c447a2a6d440afdd36a0def918729582a5c378bf74d17f5afae1ac16d414'
+    DockerContainerExtraction.create_target_tmp_dir(c_id)
+
     #src
-    i = DockerLayer()
+    #i = DockerLayer()
     #dst_addr='10.24.129.91'
-    layer_ids = i.get_local_layer_ids(image_name)
-    i.execute_remapping(image_name)
+    #layer_ids = i.get_local_layer_ids(image_name)
+    #i.execute_remapping(image_name)
     #ii = DockerContainerExtraction(c_name, layer_ids)
     #ii.transfer_container_artifacts(c_name)
 
