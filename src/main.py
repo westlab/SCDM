@@ -9,7 +9,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('rest', 'rpc', 'codegen', 'client', 'cli_soc', 'sync'),
+                    choices=('rest', 'rpc', 'codegen', 'client', 'cli_soc', 'sync', 'debug'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
@@ -112,6 +112,17 @@ def sync():
     #ii.allocate_container_artifacts()
     #ii.get_container_layer_ids(c_name)
 
+def debug():
+    from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
+    r = TimeRecorder('hoge')
+    r.track(ProposedMigrationConst.MIGRATION_TIME)
+    r.track(ProposedMigrationConst.SERVICE_DOWNTIME)
+    r.track(ProposedMigrationConst.CHECKPOINT)
+    r.track(ProposedMigrationConst.CHECKPOINT)
+    r.track(ProposedMigrationConst.SERVICE_DOWNTIME)
+    r.track(ProposedMigrationConst.MIGRATION_TIME)
+    r.write()
+
 if __name__ == "__main__":
     if args.program == 'rest':
         rest_server()
@@ -125,3 +136,5 @@ if __name__ == "__main__":
         cli_soc()
     if args.program == 'sync':
         sync()
+    if args.program == 'debug':
+        debug()
