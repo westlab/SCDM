@@ -1,5 +1,6 @@
 import argparse
 import configparser
+from time import sleep
 
 from tool.common.logging.logger_factory import LoggerFactory
 
@@ -96,43 +97,15 @@ def sync():
     is_success = DockerContainerExtraction.create_target_tmp_dir(c_id)
     print(is_success)
 
-    #src
-    #i = DockerLayer()
-    #dst_addr='10.24.129.91'
-    #layer_ids = i.get_local_layer_ids(image_name)
-    #i.execute_remapping(image_name)
-    #ii = DockerContainerExtraction(c_name, layer_ids)
-    #ii.transfer_container_artifacts(c_name)
-
-    #dst
-    #c_id = '97b8c43f61b30f83bc7a7ddb4302aa42cb6e682f9032159ea6b61c315c88a863'
-    #i = DockerLayer()
-    #layer_ids = i.get_local_layer_ids(image_name)
-    #ii = DockerContainerExtraction(c_name, layer_ids, c_id=c_id, c_layer_ids=['258ff3804982fa669a511fba24dff99a5a0553ef208896bfde1139b5a4128026-init', '258ff3804982fa669a511fba24dff99a5a0553ef208896bfde1139b5a4128026'])
-    #ii.allocate_container_artifacts()
-    #ii.get_container_layer_ids(c_name)
-
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
     from tool.common.resource_recorder import ResourceRecorder
-    r = TimeRecorder('hoge')
-    r.track(ProposedMigrationConst.MIGRATION_TIME)
-    r.track(ProposedMigrationConst.SERVICE_DOWNTIME)
-    r.track(ProposedMigrationConst.CHECKPOINT)
-    r.track(ProposedMigrationConst.CHECKPOINT)
-    r.track(ProposedMigrationConst.SERVICE_DOWNTIME)
-    r.track(ProposedMigrationConst.MIGRATION_TIME)
-    r.write()
 
-    rr = ResourceRecorder('hogehoge')
-    rr.insert_init_cond()
-    rr.track()
-    rr.track()
-    rr.track()
-    rr.track()
-    rr.track()
-    rr.track()
-    rr.write()
+    r = ResourceRecorder()
+    r.insert_init_cond()
+    r.track_on_subp()
+    r.terminate_subp()
+    r.write()
 
 if __name__ == "__main__":
     if args.program == 'rest':
@@ -149,3 +122,4 @@ if __name__ == "__main__":
         sync()
     if args.program == 'debug':
         debug()
+

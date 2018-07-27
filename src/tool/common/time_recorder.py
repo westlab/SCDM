@@ -50,9 +50,8 @@ class TimeRecorder:
         "restore",                          #8
     ]
 
-    def __init__(self, filename, cols=DEFAULT_COLS, migration_type='proposed'):
-        base_file_name = 'time_{filename}_{time}.csv'.format(filename=filename,
-                                                        time=datetime.now().strftime('%Y%m%d_%H%M%S'))
+    def __init__(self, cols=DEFAULT_COLS, migration_type='proposed'):
+        base_file_name = 'time_{time}.csv'.format(time=datetime.now().strftime('%Y%m%d_%H%M%S'))
         self._cols = self.CON_COLS if migration_type is 'conservative' else self.DEFAULT_COLS
         self._file_path = self.default_path()/base_file_name
         self._track_time = dict((i, []) for i in range(len(self._cols)))

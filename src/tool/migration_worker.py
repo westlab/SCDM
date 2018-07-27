@@ -1,6 +1,7 @@
 import configparser
 from http import HTTPStatus
 from datetime import datetime
+from subprocess import Popen
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
@@ -8,6 +9,10 @@ from tool.common.rsync import Rsync
 from tool.docker.docker_layer import DockerLayer
 from tool.docker.docker_container_extraction import DockerContainerExtraction
 from tool.gRPC.grpc_client import RpcClient
+
+# For evaluation
+from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
+from tool.common.resource_recorder import ResourceRecorder
 
 class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
@@ -42,8 +47,14 @@ class MigrationWorker:
     def run(self):
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
+        t_recorder = TimeRecorder()
+        r_recorder = ResourceRecorder()
         #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
         tag = self.tag_creator()
+
+        t_recorder.track(ProposedMigrationConst.MIGRATION_TIME)
+        r_recorder.insert_init_cond()
+        r_recorder.track_on_subp()
 
         #1. Inspec Images
         code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
@@ -55,26 +66,44 @@ class MigrationWorker:
         #2. checkpoint docker container
         #3. tranfer tranfer the container artifacts
         # TODO: before checkpoint, check signal is changed
+
+        t_recorder.track(ProposedMigrationConst.CHECKPOINT)
         has_checkpointed = self._d_cli.checkpoint(self._c_name)
+        t_recorder.track(ProposedMigrationConst.CHECKPOINT)
+        t_recorder.track(ProposedMigrationConst.SERVICE_DOWNTIME)
         if has_checkpointed is not True:
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         has_create_tmp_dir = rpc_client.create_tmp_dir(self._c_id)
         if has_create_tmp_dir is not CODE_SUCCESS:
             #TODO: fix
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
+        t_recorder.track(ProposedMigrationConst.RSYNC_C_FS)
         has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        t_recorder.track(ProposedMigrationConst.RSYNC_C_FS)
         if has_sent is not True:
             return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
         #DockerLayer.reload_daemon()
         # 5. Restore the App based on the data
+        t_recorder.track(ProposedMigrationConst.SYNC_C)
         code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
                                                        self._d_c_extractor.c_id,
                                                        self._d_c_extractor.i_layer_ids,
                                                        self._d_c_extractor.c_layer_ids)
+        t_recorder.track(ProposedMigrationConst.SYNC_C)
         self._logger.info("Restore container at dst host")
+        t_recorder.track(ProposedMigrationConst.RESTORE)
         code = rpc_client.restore(self._c_name)
+        t_recorder.track(ProposedMigrationConst.RESTORE)
+        t_recorder.track(ProposedMigrationConst.SERVICE_DOWNTIME)
+        t_recorder.track(ProposedMigrationConst.MIGRATION_TIME)
+        r_recorder.terminate_subp()
         if code != CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+
+        t_recorder.write()
+        r_recorder.write()
         return self.returned_data_creator('fin')
 
     def run_involving_image_migration(self):

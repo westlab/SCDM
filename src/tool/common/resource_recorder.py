@@ -1,8 +1,12 @@
 from timeit import default_timer as timer
 from datetime import datetime
 from pathlib import Path
+from time import sleep
 import psutil
 import csv
+import pandas as pd
+import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 
 """
 ResourceRecorder is used for tracking cpu and mem usage during migration
@@ -25,14 +29,14 @@ class ResourceRecorder:
         'cpu_usage_rate',           #4
     ]
 
-    def __init__(self, filename):
-        base_file_name = 'resource_{filename}_{time}.csv'.format(filename=filename,
-                                                        time=datetime.now().strftime('%Y%m%d_%H%M%S'))
+    def __init__(self):
+        base_file_name = 'resource_{time}.csv'.format(time=datetime.now().strftime('%Y%m%d_%H%M%S'))
         self._file_path = Path(self.DEFAULT_PATH + '/' + base_file_name)
         self._cols = self.COLS
         self._continued = True
         self._mem = psutil.virtual_memory()
         self._track_resources = dict((i, []) for i in range(len(self._cols)))
+        self._executor = None
 
     @property
     def continued(self):
@@ -47,13 +51,26 @@ class ResourceRecorder:
 
     def insert_init_cond(self):
         self._track_resources[self.INIT_MEM_USED].append(self._mem.used)
+        self._track_resources[self.MEM_USED].append(self._mem.used)
         self._track_resources[self.MEM_USED_RATE].append(self._mem.percent)
         self._track_resources[self.CPU_USED_RATE].append(psutil.cpu_percent())
 
+    def track_on_subp(self):
+        self._executor = ThreadPoolExecutor(max_workers=2)
+        self._executor.submit(self.track)
+
+    def terminate_subp(self):
+        print('fin thread')
+        self._continued = False
+        self._executor.shutdown
+        return True
+
     def track(self):
-        self.track_mem_used()
-        self.track_mem_usage_rate()
-        self.track_cpu_usage_rate()
+        while(self._continued):
+            self.track_mem_used()
+            self.track_mem_usage_rate()
+            self.track_cpu_usage_rate()
+            sleep(0.1)
 
     def track_mem_used(self):
         self._track_resources[self.MEM_USED].append(self._mem.used)
@@ -65,20 +82,18 @@ class ResourceRecorder:
         self._track_resources[self.CPU_USED_RATE].append(psutil.cpu_percent())
 
     def write(self):
-        formatted_2d_data = []
-        print(self._track_resources)
-
+        print('write')
+        df = pd.DataFrame(columns=self._cols)
+        required_row_count = len(self._track_resources[self.CPU_USED_RATE])-1
         for col_num in self._track_resources.keys():
             if col_num is self.MEM_DIFF:
-                elapsed_mem_usages = [ mem_usage - self._track_resources[self.INIT_MEM_USED] for mem_usage in self._track_resources[col_num]]
-                formatted_2d_data.append(elapsed_mem_usages)
+                elapsed_mem_usages = [ mem_usage - self._track_resources[self.INIT_MEM_USED][0] for mem_usage in self._track_resources[self.MEM_USED] ]
+                df[self._cols[col_num]] = elapsed_mem_usages
+            elif col_num is self.INIT_MEM_USED:
+                self._track_resources[col_num].extend(np.zeros(required_row_count, dtype=np.int))
+                df[self._cols[col_num]] = self._track_resources[col_num]
             else:
-                formatted_2d_data.append(self._track_resources[col_num])
+                df[self._cols[col_num]] = self._track_resources[col_num]
 
-        with open(str(self._file_path), 'a') as f:
-            writer = csv.writer(f)
-            writer.writerow(self._cols)
-            writer.writerows(formatted_2d_data)
-
-
+        df.to_csv(str(self._file_path))
 
