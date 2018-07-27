@@ -114,6 +114,7 @@ def sync():
 
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
+    from tool.common.resource_recorder import ResourceRecorder
     r = TimeRecorder('hoge')
     r.track(ProposedMigrationConst.MIGRATION_TIME)
     r.track(ProposedMigrationConst.SERVICE_DOWNTIME)
@@ -122,6 +123,16 @@ def debug():
     r.track(ProposedMigrationConst.SERVICE_DOWNTIME)
     r.track(ProposedMigrationConst.MIGRATION_TIME)
     r.write()
+
+    rr = ResourceRecorder('hogehoge')
+    rr.insert_init_cond()
+    rr.track()
+    rr.track()
+    rr.track()
+    rr.track()
+    rr.track()
+    rr.track()
+    rr.write()
 
 if __name__ == "__main__":
     if args.program == 'rest':

@@ -1,5 +1,6 @@
 from timeit import default_timer as timer
 from datetime import datetime
+from pathlib import Path
 import csv
 
 """
@@ -50,12 +51,14 @@ class TimeRecorder:
     ]
 
     def __init__(self, filename, cols=DEFAULT_COLS, migration_type='proposed'):
-        file_path = '{path}/{filename}_{time}.csv'.format(path=self.DEFAULT_PATH,
-                                                          filename=filename,
-                                                          time=datetime.now().strftime('%Y%m%d_%H%M%S'))
-        self._file_path = file_path
+        base_file_name = 'time_{filename}_{time}.csv'.format(filename=filename,
+                                                        time=datetime.now().strftime('%Y%m%d_%H%M%S'))
         self._cols = self.CON_COLS if migration_type is 'conservative' else self.DEFAULT_COLS
+        self._file_path = self.default_path()/base_file_name
         self._track_time = dict((i, []) for i in range(len(self._cols)))
+
+    def default_path(self):
+        return Path('/home/miura/programming/SCDM/logs/recorders')
 
     """
     Track time
@@ -63,9 +66,9 @@ class TimeRecorder:
     @params String key
     @return Dict track_time: an attribute including the track time
     """
+
     def track(self, key):
         self._track_time[key].append(timer())
-
     """
     Write down the track_time to csv file,
     Figure out the track time to elasped_time each phases
@@ -82,7 +85,7 @@ class TimeRecorder:
                 elapsed_time = self._track_time[i][1] - self._track_time[i][0]
                 formatted_data.append(elapsed_time)
 
-        with open(self._file_path, 'a') as f:
+        with open(str(self._file_path), 'a') as f:
             writer = csv.writer(f)
             writer.writerow(self._cols)
             writer.writerow(formatted_data)
