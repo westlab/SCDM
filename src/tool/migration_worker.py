@@ -56,7 +56,7 @@ class MigrationWorker:
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
 
-        #1. Inspec Images
+        #1. Inspect Images
         code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
         # inspect existence of docker image in dockerhub
         #if code == CODE_NO_IMAGE:
@@ -106,7 +106,10 @@ class MigrationWorker:
         r_recorder.write()
         return self.returned_data_creator('fin')
 
-    def run_involving_image_migration(self):
+    def run_involving_image_layer_migration(self):
+        print('hoge')
+
+    def run_involving_commit(self):
         self._logger.info("run_with_image_migration: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)

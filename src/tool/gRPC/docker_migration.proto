@@ -32,17 +32,23 @@ message ContainerOptions {
     //TODO: additional options such as volumes, shm_size...etc...
 }
 
-
 message ContainerArtifacts {
     string container_name = 1;
     string container_id=2;
     repeated string image_layer_ids=3;
     repeated string container_layer_ids=4;
+    repeated Volume volumes=5;
 }
 
 message Port {
     int32 host = 1;
     int32 container = 2;
+}
+
+message Volume {
+    string kind = 1;
+    string host_path = 2;
+    string docker_path =3;
 }
 
 // A Ping is a message for asking
