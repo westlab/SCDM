@@ -40,7 +40,7 @@ class DockerVolume(DockerBaseApi):
     def collect_volumes(cls, c_name, lo_cli, cli):
         arr_volumes = []
         try:
-            if cli.container.get(c_name):
+            if cli.containers.get(c_name):
                 volumes = lo_cli.inspect_container(c_name)['Mounts']
                 if volumes:
                     for vo in volumes:
