@@ -51,13 +51,13 @@ class DockerVolume(DockerBaseApi):
     Initialize volume instance wihtout docker api
     @params String c_name
     @params docker cli
-    params Array<String kind, String host_path, String docker_path> volumes
+    @params DockerMigration_pb2 Volume <String kind, String host_path, String docker_path> volumes
     """
     @classmethod
     def initialize_all_without_api(cls, c_name, cli, volumes):
         arr_volumes = []
         for vo in volumes:
-            arr_volumes.append(cls(vo['kind'], vo['h_path'], vo['d_path'], cli))
+            arr_volumes.append(cls(kind=vo.kind, host_path=vo.h_path, docker_path=vo.d_path, cli=cli))
         return arr_volumes
 
     def hash_converter(self):
