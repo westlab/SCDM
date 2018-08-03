@@ -85,7 +85,6 @@ class MigrationWorker:
         if has_sent is not True:
             return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
 
-        #DockerLayer.reload_daemon()
         # 5. Restore the App based on the data
         t_recorder.track(ProposedMigrationConst.SYNC_C)
         volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
@@ -96,10 +95,16 @@ class MigrationWorker:
                                                        volumes=volumes
                                                        )
         t_recorder.track(ProposedMigrationConst.SYNC_C)
+
+        t_recorder.track(ProposedMigrationConst.RELOAD)
+        code = rpc_client.reload_daemon()
+        t_recorder.track(ProposedMigrationConst.RELOAD)
+
         self._logger.info("Restore container at dst host")
         t_recorder.track(ProposedMigrationConst.RESTORE)
         code = rpc_client.restore(self._c_name)
         t_recorder.track(ProposedMigrationConst.RESTORE)
+
         t_recorder.track(ProposedMigrationConst.SERVICE_DOWNTIME)
         t_recorder.track(ProposedMigrationConst.MIGRATION_TIME)
         r_recorder.terminate_subp()

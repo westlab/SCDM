@@ -25,7 +25,8 @@ class Rsync:
 
         s_arg = "{host}@{src_addr}:{src_path}".format(host=host, src_addr=src_addr, src_path=src_path) if src_addr is not None else src_path
         d_arg = "{host}@{dst_addr}:{dst_path}".format(host=host, dst_addr=dst_addr, dst_path=dst_path) if is_remote_path else dst_path
-        cmd = "sshpass -p {passwd} rsync -avzr -e ssh {s_arg} {d_arg}".format(passwd=config['dst_host']['password'], s_arg=s_arg, d_arg=d_arg)
+        cmd = "sshpass -p {passwd} rsync -azr -e ssh {s_arg} {d_arg}".format(passwd=config['dst_host']['password'], s_arg=s_arg, d_arg=d_arg)
+        #cmd = "sshpass -p {passwd} rsync -avzr -e ssh {s_arg} {d_arg}".format(passwd=config['dst_host']['password'], s_arg=s_arg, d_arg=d_arg)
         try:
             #print(cmd)
             sp.run(cmd.strip().split(" "), check=True)

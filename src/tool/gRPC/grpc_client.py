@@ -12,7 +12,7 @@ class RpcClient:
         status = self._stub.PingDockerServer(docker_migration_pb2.Signal(name='default'))
         return status.code
 
-    def docker_reload(self):
+    def reload_daemon(self):
         status = self._stub.ReloadDockerd(docker_migration_pb2.Signal(name='default'))
         return status.code
 

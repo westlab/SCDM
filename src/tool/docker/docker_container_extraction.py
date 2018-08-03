@@ -178,16 +178,9 @@ class DockerContainerExtraction(DockerBaseApi):
         dst_base_path = self.dst_target_dir_path()
         con_dir = self.extract_container_related_artifacts()
         arr = []
-        print('=====================================================')
-        print(con_dir)
-        print('=====================================================')
         for tmp_d_name, d_name in con_dir.items():
             src_path = str(d_name)
             dst_path = str(dst_base_path/tmp_d_name) + '/'
-            print('==========src_path===========================================')
-            print(src_path)
-            print('==========dst_path===========================================')
-            print(dst_path)
             is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=dst_addr)
             arr.append(is_success)
         if all(arr):

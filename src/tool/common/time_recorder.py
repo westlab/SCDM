@@ -24,7 +24,8 @@ class ConservativeMigrationConst:
     CHECKPOINT=5
     RSYNC_C_FS=6
     SYNC_C=7
-    RESTORE=8
+    RELOAD=8
+    RESTORE=9
 
 class TimeRecorder:
     DEFAULT_PATH = "/home/miura/programming/SCDM/logs/recorders"
@@ -34,8 +35,9 @@ class TimeRecorder:
         "service_downtime",                 #1
         "checkpoint",                       #2
         "rsync_c_fs",                       #3
-        "sync_i",                           #4
-        "restore",                          #5
+        "c_sync",                           #4
+        "reload",                           #5
+        "restore",                          #6
     ]
 
     CON_COLS= [
@@ -47,7 +49,8 @@ class TimeRecorder:
         "checkpoint",                       #5
         "rsync_c_fs",                       #6
         "c_sync",                           #7
-        "restore",                          #8
+        "reload",                           #8
+        "restore",                          #9
     ]
 
     def __init__(self, name, cols=DEFAULT_COLS, migration_type='proposed'):
