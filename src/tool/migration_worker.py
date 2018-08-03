@@ -2,6 +2,7 @@ import configparser
 from http import HTTPStatus
 from datetime import datetime
 from subprocess import Popen
+import pdb # for debug
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
@@ -80,6 +81,7 @@ class MigrationWorker:
 
         t_recorder.track(ProposedMigrationConst.RSYNC_C_FS)
         has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        pdb.set_trace()
         t_recorder.track(ProposedMigrationConst.RSYNC_C_FS)
         if has_sent is not True:
             return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
@@ -87,10 +89,13 @@ class MigrationWorker:
         #DockerLayer.reload_daemon()
         # 5. Restore the App based on the data
         t_recorder.track(ProposedMigrationConst.SYNC_C)
+        print('======================hoge3======================')
         code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
                                                        self._d_c_extractor.c_id,
                                                        self._d_c_extractor.i_layer_ids,
-                                                       self._d_c_extractor.c_layer_ids)
+                                                       self._d_c_extractor.c_layer_ids,
+                                                       volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
+                                                       )
         t_recorder.track(ProposedMigrationConst.SYNC_C)
         self._logger.info("Restore container at dst host")
         t_recorder.track(ProposedMigrationConst.RESTORE)

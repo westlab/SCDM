@@ -47,8 +47,8 @@ message Port {
 
 message Volume {
     string kind = 1;
-    string host_path = 2;
-    string docker_path =3;
+    string h_path = 2;
+    string d_path =3;
 }
 
 // A Ping is a message for asking

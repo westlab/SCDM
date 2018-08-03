@@ -5,7 +5,7 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
-import pdb
+import pdb # for debug
 
 from tool.docker.docker_base_api import DockerBaseApi
 from tool.common.rsync import Rsync
@@ -16,13 +16,13 @@ Extract components of Docker container
 """
 
 class VolumeType(Enum):
-    VOLUME = 1
-    BIND = 2
+    volume = 1
+    bind = 2
 
 class DockerVolume(DockerBaseApi):
     def __init__(self, kind, host_path, docker_path, cli=None):
         super().__init__()
-        self._kind = kind
+        self._kind = VolumeType.volume if kind == 'volume' else VolumeType.bind
         self._h_path = Path(host_path)
         self._d_path = Path(docker_path)
         self._lo_client = cli if cli is not None else docker.APIClient()  
@@ -42,8 +42,7 @@ class DockerVolume(DockerBaseApi):
         arr_volumes = []
         if volumes:
             for vo in volumes:
-                kind = VolumeType.VOLUME if vo['Type'] == 'volume' else VolumeType.BIND
-                arr_volumes.append(cls(kind, vo['Source'], vo['Destination'], cli))
+                arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], cli))
         return arr_volumes
 
     """
@@ -56,9 +55,11 @@ class DockerVolume(DockerBaseApi):
     def initialize_all_without_api(cls, c_name, cli, volumes):
         array_volumes = []
         for vo in volumes:
-            kind = VolumeType.VOLUME if vo['Type'] == 'volume' else VolumeType.BIND
-            arr_volumes.append(cls(vo['kind'], vo['host_path'], vo['docker_path'], cli))
+            arr_volumes.append(cls(vo['kind'], vo['h_path'], vo['d_path'], cli))
         return arr_volumes
+
+    def hash_converter(self):
+        return {'kind': self._kind.name, 'h_path': self._h_path, 'd_path': self._d_path}
 
 class DockerContainerExtraction(DockerBaseApi):
     def __init__(self, c_name, c_id, i_layer_ids, c_layer_ids, volumes=None):
@@ -71,22 +72,23 @@ class DockerContainerExtraction(DockerBaseApi):
         self._i_layer_ids = i_layer_ids
         self._c_layer_ids = c_layer_ids
         self._volumes = DockerVolume.initialize_all_without_api(c_name,cli, volumes) if volumes else DockerVolume.collect_volumes(c_name, cli)
+        
 
     @property
     def c_name(self):
         return self._c_name
-
     @property
     def c_id(self):
         return self._c_id
-
     @property
     def i_layer_ids(self):
         return self._i_layer_ids
-
     @property
     def c_layer_ids(self):
         return self._c_layer_ids
+    @property
+    def volumes(self):
+        return self._volumes
 
     def overlays_path(self):
         return Path(OVERLAYER2_DIR_PATH)
@@ -164,7 +166,7 @@ class DockerContainerExtraction(DockerBaseApi):
         running_state_dict['mounts'] = self.container_mount_settings_path()/self._c_id
 
         for i in range(len(self._volumes)):
-            if self._volumes[i].kind.value == VolumeType.VOLUME.value:
+            if self._volumes[i].kind.value == VolumeType.volume.value:
                 running_state_dict['volumes_' + str(i)] = self._volumes[i]._h_path
 
         return running_state_dict
@@ -173,9 +175,16 @@ class DockerContainerExtraction(DockerBaseApi):
         dst_base_path = self.dst_target_dir_path()
         con_dir = self.extract_container_related_artifacts()
         arr = []
+        print('=====================================================')
+        print(con_dir)
+        print('=====================================================')
         for tmp_d_name, d_name in con_dir.items():
             src_path = str(d_name)
             dst_path = str(dst_base_path/tmp_d_name) + '/'
+            print('==========src_path===========================================')
+            print(src_path)
+            print('==========dst_path===========================================')
+            print(dst_path)
             is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=dst_addr)
             arr.append(is_success)
         if all(arr):
