@@ -66,8 +66,8 @@ class MigrationWorker:
 
         #2. checkpoint docker container
         #3. tranfer tranfer the container artifacts
-        # TODO: before checkpoint, check signal is changed
 
+        # TODO: before checkpoint, check signal is changed
         t_recorder.track(ProposedMigrationConst.CHECKPOINT)
         has_checkpointed = self._d_cli.checkpoint(self._c_name)
         t_recorder.track(ProposedMigrationConst.CHECKPOINT)
@@ -88,12 +88,12 @@ class MigrationWorker:
         #DockerLayer.reload_daemon()
         # 5. Restore the App based on the data
         t_recorder.track(ProposedMigrationConst.SYNC_C)
-        print('======================hoge3======================')
+        volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
         code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
                                                        self._d_c_extractor.c_id,
                                                        self._d_c_extractor.i_layer_ids,
                                                        self._d_c_extractor.c_layer_ids,
-                                                       volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
+                                                       volumes=volumes
                                                        )
         t_recorder.track(ProposedMigrationConst.SYNC_C)
         self._logger.info("Restore container at dst host")

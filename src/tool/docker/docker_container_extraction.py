@@ -38,18 +38,20 @@ class DockerVolume(DockerBaseApi):
         return self._h_path
     @classmethod
     def collect_volumes(cls, c_name, cli):
-        volumes = cli.inspect_container(c_name)['Mounts']
         arr_volumes = []
-        if volumes:
-            for vo in volumes:
-                arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], cli))
+
+        if self._client.container_present(c_name):
+            volumes = cli.inspect_container(c_name)['Mounts']
+            if volumes:
+                for vo in volumes:
+                    arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], cli))
         return arr_volumes
 
     """
     Initialize volume instance wihtout docker api
     @params String c_name
     @params docker cli
-    @params Array<String kind, String host_path, String docker_path> volumes
+    params Array<String kind, String host_path, String docker_path> volumes
     """
     @classmethod
     def initialize_all_without_api(cls, c_name, cli, volumes):
@@ -72,7 +74,6 @@ class DockerContainerExtraction(DockerBaseApi):
         self._i_layer_ids = i_layer_ids
         self._c_layer_ids = c_layer_ids
         self._volumes = DockerVolume.initialize_all_without_api(c_name,cli, volumes) if volumes else DockerVolume.collect_volumes(c_name, cli)
-        
 
     @property
     def c_name(self):
