@@ -39,12 +39,15 @@ class DockerVolume(DockerBaseApi):
     @classmethod
     def collect_volumes(cls, c_name, lo_cli, cli):
         arr_volumes = []
-        if cli.containers.get(c_name):
-            volumes = lo_cli.inspect_container(c_name)['Mounts']
-            if volumes:
-                for vo in volumes:
-                    arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], lo_cli))
-        return arr_volumes
+        try:
+            if cli.container.get(c_name):
+                volumes = lo_cli.inspect_container(c_name)['Mounts']
+                if volumes:
+                    for vo in volumes:
+                        arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], lo_cli))
+            return arr_volumes
+        except docker.errors.NotFound:
+            return arr_volumes
 
     """
     Initialize volume instance wihtout docker api
