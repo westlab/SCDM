@@ -5,5 +5,6 @@ docker-pycreds==0.2.2
 grpcio==1.10.0
 grpcio-tools==1.10.0
 protobuf==3.5.2
-pandas=0.23.3
+pandas==0.23.3
+psutil==5.4.6
 

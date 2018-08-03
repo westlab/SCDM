@@ -2,6 +2,7 @@ import configparser
 from http import HTTPStatus
 from datetime import datetime
 from subprocess import Popen
+import pdb # for debug
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
@@ -47,16 +48,16 @@ class MigrationWorker:
     def run(self):
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        t_recorder = TimeRecorder()
-        r_recorder = ResourceRecorder()
+        t_recorder = TimeRecorder(self._i_name)
+        r_recorder = ResourceRecorder(self._i_name)
         #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
         tag = self.tag_creator()
 
-        t_recorder.track(ProposedMigrationConst.MIGRATION_TIME)
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
+        t_recorder.track(ProposedMigrationConst.MIGRATION_TIME)
 
-        #1. Inspec Images
+        #1. Inspect Images
         code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
         # inspect existence of docker image in dockerhub
         #if code == CODE_NO_IMAGE:
@@ -65,8 +66,8 @@ class MigrationWorker:
 
         #2. checkpoint docker container
         #3. tranfer tranfer the container artifacts
-        # TODO: before checkpoint, check signal is changed
 
+        # TODO: before checkpoint, check signal is changed
         t_recorder.track(ProposedMigrationConst.CHECKPOINT)
         has_checkpointed = self._d_cli.checkpoint(self._c_name)
         t_recorder.track(ProposedMigrationConst.CHECKPOINT)
@@ -87,10 +88,13 @@ class MigrationWorker:
         #DockerLayer.reload_daemon()
         # 5. Restore the App based on the data
         t_recorder.track(ProposedMigrationConst.SYNC_C)
+        volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
         code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
                                                        self._d_c_extractor.c_id,
                                                        self._d_c_extractor.i_layer_ids,
-                                                       self._d_c_extractor.c_layer_ids)
+                                                       self._d_c_extractor.c_layer_ids,
+                                                       volumes=volumes
+                                                       )
         t_recorder.track(ProposedMigrationConst.SYNC_C)
         self._logger.info("Restore container at dst host")
         t_recorder.track(ProposedMigrationConst.RESTORE)
@@ -106,7 +110,10 @@ class MigrationWorker:
         r_recorder.write()
         return self.returned_data_creator('fin')
 
-    def run_involving_image_migration(self):
+    def run_involving_image_layer_migration(self):
+        print('hoge')
+
+    def run_involving_commit(self):
         self._logger.info("run_with_image_migration: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)

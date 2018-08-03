@@ -59,7 +59,7 @@ def rpc_client():
     version = 'latest'
 
     ports =[]
-    dst_addr = '10.24.129.91'
+    dst_addr = '192.168.1.2'
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
@@ -89,23 +89,23 @@ def cli_soc():
 def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
-
-    image_name = "tatsuki/test"
-    c_name = "cr_test"
-
-    c_id = '546fd2f98b5a4f54c8824c007f1d5a4cee5a6ed762e24bc16382ed72495fd94d'
-    is_success = DockerContainerExtraction.create_target_tmp_dir(c_id)
-    print(is_success)
+    i = DockerLayer()
+    i.execute_remapping('elasticsearch')
 
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
     from tool.common.resource_recorder import ResourceRecorder
+    from tool.docker.docker_container_extraction import DockerContainerExtraction, DockerVolume
+    import docker
 
-    r = ResourceRecorder()
-    r.insert_init_cond()
-    r.track_on_subp()
-    r.terminate_subp()
-    r.write()
+    arr = DockerVolume.collect_volumes('es1', docker.APIClient())
+    print(arr)
+
+    #r = ResourceRecorder()
+    #r.insert_init_cond()
+    #r.track_on_subp()
+    #r.terminate_subp()
+    #r.write()
 
 if __name__ == "__main__":
     if args.program == 'rest':

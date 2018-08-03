@@ -36,11 +36,12 @@ class RpcClient:
         status_with_c_id = self._stub.CreateContainer(docker_migration_pb2.DockerSummary(image_name=i_name, version=version, options=c_opt))
         return  status_with_c_id
 
-    def allocate_container_artifacts(self, c_name, c_id, i_layer_ids, c_layer_ids):
+    def allocate_container_artifacts(self, c_name, c_id, i_layer_ids, c_layer_ids, volumes):
         status = self._stub.AllocateContainerArtifacts(docker_migration_pb2.ContainerArtifacts(container_name=c_name, 
                                                                                                container_id=c_id,
                                                                                                image_layer_ids=i_layer_ids,
-                                                                                               container_layer_ids=c_layer_ids))
+                                                                                               container_layer_ids=c_layer_ids,
+                                                                                               volumes=volumes))
         return status.code
 
     def request_migration(self, i_name, version, c_name, c_opt):
