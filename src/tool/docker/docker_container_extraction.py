@@ -53,13 +53,13 @@ class DockerVolume(DockerBaseApi):
     """
     @classmethod
     def initialize_all_without_api(cls, c_name, cli, volumes):
-        array_volumes = []
+        arr_volumes = []
         for vo in volumes:
             arr_volumes.append(cls(vo['kind'], vo['h_path'], vo['d_path'], cli))
         return arr_volumes
 
     def hash_converter(self):
-        return {'kind': self._kind.name, 'h_path': self._h_path, 'd_path': self._d_path}
+        return {'kind': self._kind.name, 'h_path': str(self._h_path), 'd_path': str(self._d_path)}
 
 class DockerContainerExtraction(DockerBaseApi):
     def __init__(self, c_name, c_id, i_layer_ids, c_layer_ids, volumes=None):
