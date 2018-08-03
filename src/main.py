@@ -54,8 +54,8 @@ def rpc_client():
 
     checkpoint_option_keys = ['ports']
     migration_option_keys = ['host', 'dst_addr']
-    image_name = 'elasticsearch'
-    container_name = 'es1'
+    image_name = 'busybox'
+    container_name = 'cr_test'
     version = 'latest'
 
     ports =[]

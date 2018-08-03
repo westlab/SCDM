@@ -59,7 +59,7 @@ class DockerVolume(DockerBaseApi):
         return arr_volumes
 
     def hash_converter(self):
-        return {'kind': self._kind.name, 'h_path': self._h_path, 'd_path': self._d_path}
+        return {'kind': self._kind.name, 'h_path': str(self._h_path), 'd_path': str(self._d_path)}
 
 class DockerContainerExtraction(DockerBaseApi):
     def __init__(self, c_name, c_id, i_layer_ids, c_layer_ids, volumes=None):
