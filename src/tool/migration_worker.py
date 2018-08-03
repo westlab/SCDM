@@ -48,14 +48,14 @@ class MigrationWorker:
     def run(self):
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        t_recorder = TimeRecorder()
-        r_recorder = ResourceRecorder()
+        t_recorder = TimeRecorder(self._i_name)
+        r_recorder = ResourceRecorder(self._i_name)
         #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
         tag = self.tag_creator()
 
-        t_recorder.track(ProposedMigrationConst.MIGRATION_TIME)
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
+        t_recorder.track(ProposedMigrationConst.MIGRATION_TIME)
 
         #1. Inspect Images
         code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)

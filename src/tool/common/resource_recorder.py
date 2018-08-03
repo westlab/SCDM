@@ -29,8 +29,8 @@ class ResourceRecorder:
         'cpu_usage_rate',           #4
     ]
 
-    def __init__(self):
-        base_file_name = 'resource_{time}.csv'.format(time=datetime.now().strftime('%Y%m%d_%H%M%S'))
+    def __init__(self, name):
+        base_file_name = '{name}_resource_{time}.csv'.format(name=name, time=datetime.now().strftime('%Y%m%d_%H%M%S'))
         self._file_path = Path(self.DEFAULT_PATH + '/' + base_file_name)
         self._cols = self.COLS
         self._continued = True
@@ -50,9 +50,10 @@ class ResourceRecorder:
         raise ValuError('Please insert valid type of boolean')
 
     def insert_init_cond(self):
-        self._track_resources[self.INIT_MEM_USED].append(self._mem.used)
-        self._track_resources[self.MEM_USED].append(self._mem.used)
-        self._track_resources[self.MEM_USED_RATE].append(self._mem.percent)
+        mem_used = psutil.virtual_memory().used
+        self._track_resources[self.INIT_MEM_USED].append(mem_used)
+        self._track_resources[self.MEM_USED].append(mem_used)
+        self._track_resources[self.MEM_USED_RATE].append(psutil.virtual_memory().percent)
         self._track_resources[self.CPU_USED_RATE].append(psutil.cpu_percent())
 
     def track_on_subp(self):
@@ -73,10 +74,10 @@ class ResourceRecorder:
             sleep(0.1)
 
     def track_mem_used(self):
-        self._track_resources[self.MEM_USED].append(self._mem.used)
+        self._track_resources[self.MEM_USED].append(psutil.virtual_memory().used)
 
     def track_mem_usage_rate(self):
-        self._track_resources[self.MEM_USED_RATE].append(self._mem.percent)
+        self._track_resources[self.MEM_USED_RATE].append(psutil.virtual_memory().percent)
 
     def track_cpu_usage_rate(self):
         self._track_resources[self.CPU_USED_RATE].append(psutil.cpu_percent())
