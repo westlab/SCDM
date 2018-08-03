@@ -37,14 +37,13 @@ class DockerVolume(DockerBaseApi):
     def h_path(self):
         return self._h_path
     @classmethod
-    def collect_volumes(cls, c_name, cli):
+    def collect_volumes(cls, c_name, lo_cli, cli):
         arr_volumes = []
-
-        if self._client.container_present(c_name):
-            volumes = cli.inspect_container(c_name)['Mounts']
+        if cli.containers.get(c_name):
+            volumes = lo_cli.inspect_container(c_name)['Mounts']
             if volumes:
                 for vo in volumes:
-                    arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], cli))
+                    arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], lo_cli))
         return arr_volumes
 
     """
@@ -73,7 +72,7 @@ class DockerContainerExtraction(DockerBaseApi):
         self._c_id = c_id
         self._i_layer_ids = i_layer_ids
         self._c_layer_ids = c_layer_ids
-        self._volumes = DockerVolume.initialize_all_without_api(c_name,cli, volumes) if volumes else DockerVolume.collect_volumes(c_name, cli)
+        self._volumes = DockerVolume.initialize_all_without_api(c_name,cli, volumes) if volumes else DockerVolume.collect_volumes(c_name, cli, self._client)
 
     @property
     def c_name(self):
