@@ -13,7 +13,8 @@ class ProposedMigrationConst:
     CHECKPOINT=2
     RSYNC_C_FS=3
     SYNC_C=4
-    RESTORE=5
+    RELOAD=5
+    RESTORE=6
 
 class ConservativeMigrationConst:
     MIGRATION_TIME=0

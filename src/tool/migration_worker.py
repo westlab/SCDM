@@ -14,6 +14,7 @@ from tool.gRPC.grpc_client import RpcClient
 # For evaluation
 from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
 from tool.common.resource_recorder import ResourceRecorder
+from tool.common.disk_recorder import DiskRecorder
 
 class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
@@ -48,6 +49,7 @@ class MigrationWorker:
     def run(self):
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
+        d_recorder = DiskRecorder(self._c_name)
         t_recorder = TimeRecorder(self._i_name)
         r_recorder = ResourceRecorder(self._i_name)
         #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
@@ -113,6 +115,8 @@ class MigrationWorker:
 
         t_recorder.write()
         r_recorder.write()
+        d_recorder.track_all(self._d_c_extractor)
+        d_recorder.write()
         return self.returned_data_creator('fin')
 
     def run_involving_image_layer_migration(self):

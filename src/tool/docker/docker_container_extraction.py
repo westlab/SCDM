@@ -117,6 +117,9 @@ class DockerContainerExtraction(DockerBaseApi):
     def dst_target_dir_dict(self):
         return dict.fromkeys(['rootfs', 'rootfs-init', 'mounts','containers'])
 
+    def checkpoint_path(self, container_id):
+        return self.container_settings_path(container_id)/'checkpoints'
+
     """
     Create temporary directory for storing container artifacts
     """

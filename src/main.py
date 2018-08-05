@@ -95,17 +95,26 @@ def sync():
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
     from tool.common.resource_recorder import ResourceRecorder
+    from tool.common.disk_recorder import DiskRecorder
     from tool.docker.docker_container_extraction import DockerContainerExtraction, DockerVolume
+    from tool.docker.docker_layer import DockerLayer
     import docker
-
-    arr = DockerVolume.collect_volumes('es1', docker.APIClient())
-    print(arr)
 
     #r = ResourceRecorder()
     #r.insert_init_cond()
     #r.track_on_subp()
     #r.terminate_subp()
     #r.write()
+    i_name = 'elasticsearch:latest'
+    c_name = 'es1'
+    c_id='7b288f57cfce55e9cc8cde12df1e9555b9c80e90df7dc0ccbaf915c6947c1c12'
+    i = DockerLayer()
+    i_layer_ids = i.get_local_layer_ids(i_name)
+    c_layer_ids = i.get_container_layer_ids(c_name)
+    extractor = DockerContainerExtraction(c_name, c_id, i_layer_ids, c_layer_ids)
+    recorder = DiskRecorder(c_name)
+    recorder.track_all(extractor)
+    recorder.write()
 
 if __name__ == "__main__":
     if args.program == 'rest':
