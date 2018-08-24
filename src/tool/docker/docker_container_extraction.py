@@ -181,6 +181,7 @@ class DockerContainerExtraction(DockerBaseApi):
         dst_base_path = self.dst_target_dir_path()
         con_dir = self.extract_container_related_artifacts()
         arr = []
+        
         for tmp_d_name, d_name in con_dir.items():
             src_path = str(d_name)
             dst_path = str(dst_base_path/tmp_d_name) + '/'

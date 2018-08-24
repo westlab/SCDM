@@ -15,6 +15,9 @@ parser.add_argument('program',
 parser.add_argument('conf',
                     type=str,
                     help='directory path to config file')
+#parser.add_argument('image_name',type=str, help='image name', default='busybox')
+#parser.add_argument('container_name',type=str, help='container name', default='cr_test1')
+#parser.add_argument('bandwidth',type=int, help='bandwdith', default=0)
 args = parser.parse_args()
 config = configparser.ConfigParser()
 config.read(args.conf)
@@ -54,8 +57,6 @@ def rpc_client():
 
     checkpoint_option_keys = ['ports']
     migration_option_keys = ['host', 'dst_addr']
-    image_name = 'busybox'
-    container_name = 'cr_test'
     version = 'latest'
 
     ports =[]
@@ -64,8 +65,8 @@ def rpc_client():
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
     worker = MigrationWorker(cli=docker_api,
-                             i_name=image_name, version=version, c_name=container_name,
-                             m_opt=migration_option, c_opt=checkpoint_option)
+                             i_name=args.image_name, version=version, c_name=args.container_name,
+                             m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
     data = worker.run()
 
 def codegen():
@@ -80,8 +81,9 @@ def cli_soc():
     cli.connect()
 
     app_id = 0;
-    i_message_type = ClientMessageCode.SIG_CHG.value
+    i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
     ret = cli.send_formalized_message(app_id, i_message_type)
+    print("response")
     print(ret)
     cli.read()
     cli.close()

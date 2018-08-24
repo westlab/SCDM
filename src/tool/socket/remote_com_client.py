@@ -12,10 +12,11 @@ class ClientMessageCode(Enum):
     ACK = 3
     MSG_WAIT = 4
     MSG_OTHER = 5
-    SIG_CHG = 6
+    SERV_CHG_SIG = 6
+    DM_ASK_APP_INFO = 7
 
 class RemoteComClient:
-    BUFFER_SIZE = 200
+    BUFFER_SIZE = 1024
 
     def __init__(self, path='/tmp/dms'):
         self.socket_path = path
@@ -51,7 +52,10 @@ class RemoteComClient:
 
     def read(self):
         data = self.socket.recv(RemoteComClient.BUFFER_SIZE)
+        print("============================data=======================================")
+        print(data)
         message = self.interpret_message(data)
+        print("read")
         print(message)
         return message
 

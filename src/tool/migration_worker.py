@@ -20,7 +20,7 @@ class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
     ORDER_OF_REQUEST_MIGRATION = 2
 
-    def __init__(self, cli, i_name, version, c_name, m_opt, c_opt):
+    def __init__(self, cli, i_name, version, c_name, m_opt, c_opt, bandwidth=0):
         config = configparser.ConfigParser()
         config.read(DOCKER_BASIC_SETTINGS_PATH)
         i_layer_manager = DockerLayer()
@@ -35,6 +35,7 @@ class MigrationWorker:
         self._c_name = c_name
         self._m_opt = m_opt
         self._c_opt = c_opt
+        self._bandwidth = bandwidth
 
     """
     Start migration-worker for migrating Docker App based on the following tasks
@@ -49,9 +50,9 @@ class MigrationWorker:
     def run(self):
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        d_recorder = DiskRecorder(self._c_name)
-        t_recorder = TimeRecorder(self._i_name)
-        r_recorder = ResourceRecorder(self._i_name)
+        d_recorder = DiskRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
+        t_recorder = TimeRecorder('{0}_{1}'.format(self._c_name, self._bandwidth) )
+        r_recorder = ResourceRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
         #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
         tag = self.tag_creator()
 
@@ -71,9 +72,9 @@ class MigrationWorker:
 
         # TODO: before checkpoint, check signal is changed
         t_recorder.track(ProposedMigrationConst.CHECKPOINT)
+        t_recorder.track(ProposedMigrationConst.SERVICE_DOWNTIME)
         has_checkpointed = self._d_cli.checkpoint(self._c_name)
         t_recorder.track(ProposedMigrationConst.CHECKPOINT)
-        t_recorder.track(ProposedMigrationConst.SERVICE_DOWNTIME)
         if has_checkpointed is not True:
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         has_create_tmp_dir = rpc_client.create_tmp_dir(self._c_id)
