@@ -9,11 +9,14 @@ class ClientMessageCode(Enum):
     BUF_LOCATION = 0
     RULE_INS = 1
     RULE_DEL = 2
-    ACK = 3
-    MSG_WAIT = 4
-    MSG_OTHER = 5
-    SERV_CHG_SIG = 6
-    DM_ASK_APP_INFO = 7
+    BULK_RULE_INS = 3
+    BULK_RULE_DEL = 4
+    ACK = 5
+    MSG_WAIT = 6
+    MSG_OTHER = 7
+    SERV_CHG_SIG = 8
+    DM_ASK_APP_INFO = 9
+    DM_INIT_BUF = 10
 
 class RemoteComClient:
     BUFFER_SIZE = 1024
@@ -25,6 +28,9 @@ class RemoteComClient:
     def connect(self):
         self.socket.connect(self.socket_path)
 
+    def send(self):
+        self.socket.send(message.encode())
+
     def close(self):
         self.socket.close()
 
@@ -33,14 +39,11 @@ class RemoteComClient:
     @params Integer app_id
     @params Integer message_type
     """
-
     def send_formalized_message(self, app_id, message_type, payload=''):
         message = self.formalize_message(app_id, message_type, payload)
-        print(message)
+        print("message: {0}".format(message))
         self.socket.send(message.encode())
 
-    def send(self):
-        self.socket.send(message.encode())
 
     """
     Read socket data, and return the returned data
@@ -49,14 +52,12 @@ class RemoteComClient:
     @params Integer message_type
     @return String message
     """
-
     def read(self):
         data = self.socket.recv(RemoteComClient.BUFFER_SIZE)
+        message = self.interpret_message(data)
         print("============================data=======================================")
         print(data)
-        message = self.interpret_message(data)
         print("read")
-        print(message)
         return message
 
     """
@@ -70,7 +71,7 @@ class RemoteComClient:
     """
     def formalize_message(self, app_id, message_type, payload=''):
         message_no =0
-        message = '{app_id},{no},{type},{payload}'.format(app_id=str(app_id),
+        message = '{app_id},{no},{type},{payload},'.format(app_id=str(app_id),
                                                           no=str(message_no),
                                                           type=str(message_type),
                                                           payload=payload)
@@ -88,4 +89,5 @@ class RemoteComClient:
         arr = str_message.split(",")
         formatted_message = { key_arr[i]: arr[i] for i in range(len(key_arr)) }
         return formatted_message
+
 
