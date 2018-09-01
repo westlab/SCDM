@@ -15,9 +15,9 @@ parser.add_argument('program',
 parser.add_argument('conf',
                     type=str,
                     help='directory path to config file')
-#parser.add_argument('image_name',type=str, help='image name', default='busybox')
-#parser.add_argument('container_name',type=str, help='container name', default='cr_test1')
-#parser.add_argument('bandwidth',type=int, help='bandwdith', default=0)
+parser.add_argument('image_name',type=str, help='image name', default='busybox')
+parser.add_argument('container_name',type=str, help='container name', default='cr_test1')
+parser.add_argument('bandwidth',type=int, help='bandwdith', default=0)
 args = parser.parse_args()
 config = configparser.ConfigParser()
 config.read(args.conf)
@@ -68,6 +68,7 @@ def rpc_client():
                              i_name=args.image_name, version=version, c_name=args.container_name,
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
     data = worker.run()
+    #data = worker.run_involving_commit()
 
 def codegen():
     from service import codegen
@@ -83,16 +84,32 @@ def cli_soc():
     app_id = 0;
     i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
     ret = cli.send_formalized_message(app_id, i_message_type)
-    print("response")
-    print(ret)
-    cli.read()
+    message = cli.read()
+    buf_arr = message['payload'].split('|')[:1]
+    rule_arr = message['payload'].split('|')[2:]
+
+    ## delete all rules
+    #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    #message = cli.read()
+
+    ### Add all rules 
+    #i_message_type = ClientMessageCode.BULK_RULE_INS.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    #message = cli.read()
+
+    # Init buf
+    i_message_type = ClientMessageCode.DM_INIT_BUF.value
+    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf')
+    message = cli.read()
+
     cli.close()
 
 def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
     i = DockerLayer()
-    i.execute_remapping('elasticsearch')
+    i.execute_remapping('tatsuki/unix-socket')
 
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
