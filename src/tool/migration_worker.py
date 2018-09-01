@@ -54,7 +54,7 @@ class MigrationWorker:
         t_recorder = TimeRecorder('{0}_{1}'.format(self._c_name, self._bandwidth) )
         r_recorder = ResourceRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
         #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
-        tag = self.tag_creator()
+        #tag = self.tag_creator()
 
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
@@ -120,9 +120,6 @@ class MigrationWorker:
         d_recorder.write()
         return self.returned_data_creator('fin')
 
-    def run_involving_image_layer_migration(self):
-        print('hoge')
-
     def run_involving_commit(self):
         self._logger.info("run_with_image_migration: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
@@ -140,13 +137,13 @@ class MigrationWorker:
                     return self.returned_data_creator('push')
             else:
                  return self.returned_data_creator('commit')
-        # 2. Fetch Docker image from docker hub, and Create a containeri
+        # 2. Fetch Docker image from docker hub, and Create a container
         # 3. Create checkpoints
         # 4. Send checkpoints docker
         status_with_c_id = rpc_client.create_container(i_name=repo, version=tag, c_name=self._c_name)
         if status_with_c_id.code == CODE_SUCCESS:
             self._logger.info("Checkpoint running container")
-            has_checkpointed = self._d_cli.checkpoint(self._c_name)
+            has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_default_dir=True)
             has_sent = self.send_checkpoint(c_id=status_with_c_id.c_id)
 
             if has_checkpointed is not True:
@@ -158,7 +155,7 @@ class MigrationWorker:
 
         # 5. Restore the App based on the data
         self._logger.info("Restore container at dst host")
-        code = rpc_client.restore(self._c_name)
+        code = rpc_client.restore(self._c_name, cp_name='checkpoint1', need_default_dir=True)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
