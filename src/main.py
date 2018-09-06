@@ -80,13 +80,27 @@ def cli_soc():
 
     cli = RemoteComClient()
     cli.connect()
-
     app_id = 0;
-    i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
+
+
+    ############################
+    ### Src-2
+    ############################
+    i_message_type = ClientMessageCode.SERV_CHG_SIG.value
     ret = cli.send_formalized_message(app_id, i_message_type)
     message = cli.read()
-    buf_arr = message['payload'].split('|')[:1]
-    rule_arr = message['payload'].split('|')[2:]
+    print(message)
+
+
+
+    ###########################
+    ###src-1
+    ############################
+    #i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
+    #ret = cli.send_formalized_message(app_id, i_message_type)
+    #message = cli.read()
+    #buf_arr = message['payload'].split('|')[:1]
+    #rule_arr = message['payload'].split('|')[2:]
 
     ## delete all rules
     #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
@@ -99,11 +113,11 @@ def cli_soc():
     #message = cli.read()
 
     # Init buf
-    i_message_type = ClientMessageCode.DM_INIT_BUF.value
-    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf')
-    message = cli.read()
+    #@i_message_type = ClientMessageCode.DM_INIT_BUF.value
+    #@ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf')
+    #@message = cli.read()
 
-    cli.close()
+    #cli.close()
 
 def sync():
     from tool.docker.docker_layer import DockerLayer
