@@ -155,7 +155,7 @@ class MigrationWorker:
 
         # 5. Restore the App based on the data
         self._logger.info("Restore container at dst host")
-        code = rpc_client.restore(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
+        code = rpc_client.restore(self._c_name,  need_tmp_dir=True)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')

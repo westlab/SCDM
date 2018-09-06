@@ -104,7 +104,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def RestoreContainer(self, req, context):
         self._logger.info("Restore Container")
-        code = CODE_SUCCESS if self._cli.restore(req.c_name, cp_name='checkpoint1', need_tmp_dir=req.need_tmp_dir) is True else os.errno.EHOSTDOWN
+        code = CODE_SUCCESS if self._cli.restore(req.c_name, cp_name=req.cp_name, need_tmp_dir=req.need_tmp_dir) is True else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=code)
 
     """
