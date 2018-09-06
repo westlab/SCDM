@@ -67,8 +67,8 @@ def rpc_client():
     worker = MigrationWorker(cli=docker_api,
                              i_name=args.image_name, version=version, c_name=args.container_name,
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
-    data = worker.run()
-    #data = worker.run_involving_commit()
+    #data = worker.run()
+    data = worker.run_involving_commit()
 
 def codegen():
     from service import codegen

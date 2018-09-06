@@ -143,7 +143,7 @@ class MigrationWorker:
         status_with_c_id = rpc_client.create_container(i_name=repo, version=tag, c_name=self._c_name)
         if status_with_c_id.code == CODE_SUCCESS:
             self._logger.info("Checkpoint running container")
-            has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_default_dir=True)
+            has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
             has_sent = self.send_checkpoint(c_id=status_with_c_id.c_id)
 
             if has_checkpointed is not True:
@@ -155,7 +155,7 @@ class MigrationWorker:
 
         # 5. Restore the App based on the data
         self._logger.info("Restore container at dst host")
-        code = rpc_client.restore(self._c_name, cp_name='checkpoint1', need_default_dir=True)
+        code = rpc_client.restore(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')

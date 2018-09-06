@@ -188,8 +188,8 @@ class DockerBaseApi:
     #@params Boolean leave_running
     @return True|False
     """
-    def checkpoint(self, c_name, cp_name='checkpoint1', need_default_dir=False):
-        if need_default_dir is False:
+    def checkpoint(self, c_name, cp_name='checkpoint1', need_tmp_dir=False):
+        if need_tmp_dir is True:
             cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
         else:
             cmd='docker checkpoint create {c_name} {cp_name}'.format(c_name=c_name, cp_name=cp_name)
@@ -208,11 +208,11 @@ class DockerBaseApi:
     @params String cp_name='checkpoint'
     @return True|False
     """
-    def restore(self, c_name, cp_name='checkpoint1', need_default_dir=False):
+    def restore(self, c_name, cp_name='checkpoint1', need_tmp_dir=False):
         try:
             c= self.container_presence(c_name)
             if c is not None:
-                if need_default_dir is True:
+                if need_tmp_dir is True:
                     cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
                     cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
                 else:

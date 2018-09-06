@@ -73,6 +73,6 @@ message CheckpointSummary {
     // Container name
     string c_name = 1;
     // Cp_name represents checkpoint dir name
-    string cp_name = 2;
+    bool need_tmp_dir = 2;
 }
 
