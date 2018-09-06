@@ -60,7 +60,7 @@ class DockerBaseApi:
     @params String tag="latest"
     @return Image
     """
-    def pull(self, repository, tag="latest", scope=ResistryScope.public):
+    def pull(self, repository, tag="latest"):
         image = self._client.images.pull(self.name_converter(repository, tag))
         return image
 
@@ -71,7 +71,7 @@ class DockerBaseApi:
     @params String tag
     @params True | False
     """
-    def push(self, repository, tag="latest", scope=ResistryScope.private):
+    def push(self, repository, tag="latest"):
         try:
             re = self._client.images.push(repository, tag=tag)
             if 'error' in re:
