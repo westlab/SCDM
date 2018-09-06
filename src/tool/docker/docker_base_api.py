@@ -1,8 +1,9 @@
 # doc https://docker-py.readthedocs.io/en/stable/
 import docker
-import configparser
+from enum import Enum
 import json
 import subprocess as sp
+import configparser
 
 from tool.common.logging.logger_factory import LoggerFactory
 from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
@@ -59,7 +60,7 @@ class DockerBaseApi:
     @params String tag="latest"
     @return Image
     """
-    def pull(self, repository, tag="latest"):
+    def pull(self, repository, tag="latest", scope=ResistryScope.public):
         image = self._client.images.pull(self.name_converter(repository, tag))
         return image
 
@@ -70,7 +71,7 @@ class DockerBaseApi:
     @params String tag
     @params True | False
     """
-    def push(self, repository, tag="latest"):
+    def push(self, repository, tag="latest", scope=ResistryScope.private):
         try:
             re = self._client.images.push(repository, tag=tag)
             if 'error' in re:

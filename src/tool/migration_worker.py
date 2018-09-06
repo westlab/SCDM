@@ -53,8 +53,6 @@ class MigrationWorker:
         d_recorder = DiskRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
         t_recorder = TimeRecorder('{0}_{1}'.format(self._c_name, self._bandwidth) )
         r_recorder = ResourceRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
-        #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
-        #tag = self.tag_creator()
 
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
@@ -123,24 +121,24 @@ class MigrationWorker:
     def run_involving_commit(self):
         self._logger.info("run_with_image_migration: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
+        src_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['private'],i_name=self._i_name)
+        dst_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['local'],i_name=self._i_name)
         tag = self.tag_creator()
 
         # 1. Inspect images
-        code = rpc_client.inspect(i_name=repo, version=tag, c_name=self._c_name)
-        if code == CODE_NO_IMAGE:
-            image = self._d_cli.commit(c_name=self._c_name, repository=repo, tag=tag)
-            if image is not None:
-                self._logger.info("Push Docker repo:{0}, tag:{1}".format(repo, tag))
-                has_pushed = self._d_cli.push(repository=repo, tag=tag)
-                if has_pushed is False:
-                    return self.returned_data_creator('push')
-            else:
-                 return self.returned_data_creator('commit')
+        #code = rpc_client.inspect(i_name=repo, version=tag, c_name=self._c_name)
+        image = self._d_cli.commit(c_name=self._c_name, repository=src_repo, tag=tag)
+        if image is not None:
+            self._logger.info("Push Docker repo:{0}, tag:{1}".format(src_repo, tag))
+            has_pushed = self._d_cli.push(repository=src_repo, tag=tag)
+            if has_pushed is False:
+                return self.returned_data_creator('push')
+        else:
+            return self.returned_data_creator('commit')
         # 2. Fetch Docker image from docker hub, and Create a container
         # 3. Create checkpoints
         # 4. Send checkpoints docker
-        status_with_c_id = rpc_client.create_container(i_name=repo, version=tag, c_name=self._c_name)
+        status_with_c_id = rpc_client.create_container(i_name=dst_repo, version=tag, c_name=self._c_name)
         if status_with_c_id.code == CODE_SUCCESS:
             self._logger.info("Checkpoint running container")
             has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
@@ -155,7 +153,7 @@ class MigrationWorker:
 
         # 5. Restore the App based on the data
         self._logger.info("Restore container at dst host")
-        code = rpc_client.restore(self._c_name,  need_tmp_dir=True)
+        code = rpc_client.restore(self._c_name, need_tmp_dir=True)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
