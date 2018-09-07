@@ -19,7 +19,6 @@ class DockerBaseApi:
         self._basic_config = config
         self._logger = LoggerFactory.create_logger(self)
 
-    @
 
     @classmethod
     def reload_daemon(cls):
@@ -246,7 +245,7 @@ class DockerBaseApi:
         # set user defined values
         dict = { 'volumes': volumes,'ipc_mode': self._basic_config['container']['ipc_namespace']}
         dict['name'] = options['name'] if options['name'] is not None else self._basic_config['container']['default_name']
-        if options['port'] is not None:
+        if 'port' in options:
             dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
         return dict
 
