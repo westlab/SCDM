@@ -24,10 +24,9 @@ for making easy to pass variable to next functon
 """
 def dict_convetor(options):
     # O means that a developer does not specify a port number
-    dict = {
-        'name': options.container_name,
-        'port': {'host': options.port.host, 'container': options.port.container} if options.port is not 0 else None,
-    }
+    dict = { 'name': options.container_name }
+    if options.port.host is not 0 and options.port.container is not 0:
+        dict['port'] =  {'host': options.port.host, 'container': options.port.container}
     return dict
 
 class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
@@ -150,6 +149,20 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         is_success = DockerContainerExtraction.create_target_tmp_dir(c_id=req.name)
         code = CODE_SUCCESS if is_success is True else CODE_NO_IMAGE
         return docker_migration_pb2.Status(code=code)
+
+    """
+    Pull image
+    """
+    def PullImage(self, req, context):
+        self._logger.info("Pull image")
+        pulled_image = self._cli.fetch_image(name=req.image_name, version=req.version)
+        if pulled_image is not None:
+            self._logger.info("Create the container from the image with given options")
+            return docker_migration_pb2.Status(code=CODE_SUCCESS)
+        else:
+            self._logger.info("Cannot get the specified image")
+            code =  os.errno.EHOSTDOWN
+            return docker_migration_pb2.Status(code=code)
 
     """
     Create a container create,

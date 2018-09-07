@@ -2,7 +2,6 @@ import configparser
 from http import HTTPStatus
 from datetime import datetime
 from subprocess import Popen
-import pdb # for debug
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory

@@ -14,8 +14,11 @@ class DockerBaseApi:
         config = configparser.ConfigParser()
         config.read(DOCKER_BASIC_SETTINGS_PATH)
         self._client = docker.from_env()
+        self._lo_client = docker.APIClient()
         self._basic_config = config
         self._logger = LoggerFactory.create_logger(self)
+
+    @
 
     @classmethod
     def reload_daemon(cls):
@@ -61,8 +64,11 @@ class DockerBaseApi:
     @return Image
     """
     def pull(self, repository, tag="latest"):
-        image = self._client.images.pull(self.name_converter(repository, tag))
-        return image
+        try: 
+            image = self._client.images.pull(self.name_converter(repository, tag))
+            return image
+        except:
+            return None
 
     """
     Push docker image based on the repository and tag
