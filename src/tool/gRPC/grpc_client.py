@@ -30,9 +30,13 @@ class RpcClient:
         status = self._stub.InspectArtifacts(docker_migration_pb2.DockerSummary(image_name=i_name, version=version, options=c_opt))
         return status.code
 
-    def create_container(self, i_name, version, c_name):
-        port = docker_migration_pb2.Port(host=9999, container=9999)
-        c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name, port=port)
+    def pull(self, i_name, version):
+        status = self.PullImage(docker_migration_pb2.DockerSummary(image_name=i_name, version=version))
+        return status.code
+
+    def create_container(self, i_name, version, c_name, ports=None, volumes=None):
+        port = docker_migration_pb2.Port(host=ports['host'], container=ports['cotainer']) if ports is not None else None
+        c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name, port=port, volumes=volumes)
         status_with_c_id = self._stub.CreateContainer(docker_migration_pb2.DockerSummary(image_name=i_name, version=version, options=c_opt))
         return  status_with_c_id
 

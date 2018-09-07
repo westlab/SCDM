@@ -20,11 +20,12 @@ class VolumeType(Enum):
     bind = 2
 
 class DockerVolume(DockerBaseApi):
-    def __init__(self, kind, host_path, docker_path, cli=None):
+    def __init__(self, kind, host_path, docker_path, cli=None, name=None):
         super().__init__()
         self._kind = VolumeType.volume if kind == 'volume' else VolumeType.bind
         self._h_path = Path(host_path)
         self._d_path = Path(docker_path)
+        self._name = name
         self._lo_client = cli if cli is not None else docker.APIClient()  
 
     @property
@@ -44,7 +45,7 @@ class DockerVolume(DockerBaseApi):
                 volumes = lo_cli.inspect_container(c_name)['Mounts']
                 if volumes:
                     for vo in volumes:
-                        arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], lo_cli))
+                        arr_volumes.append(cls(vo[ vo['Type'], vo['Source'], vo['Destination'], lo_cli, vo['Name']))
             return arr_volumes
         except docker.errors.NotFound:
             return arr_volumes

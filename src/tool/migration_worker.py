@@ -134,21 +134,28 @@ class MigrationWorker:
                 return self.returned_data_creator('push')
         else:
             return self.returned_data_creator('commit')
-        # 2. Fetch Docker image from docker hub, and Create a container
-        # 3. Create checkpoints
-        # 4. Send checkpoints docker
-        status_with_c_id = rpc_client.create_container(i_name=dst_repo, version=tag, c_name=self._c_name)
-        if status_with_c_id.code == CODE_SUCCESS:
+        # 2. Create checkpoints
+        # 3. Send checkpoints docker
+        # 4. Send volume 
+        # 5. create a container
+        pulled_image = rpc_client.pull(i_name=dst_repo, version=tag, c_name=self._c_name)
+        volumes = DockerVolume.collect_volumes(self._c_name, self._d_client.lo_client, self._d_client.client)
+        if pulled_image is not None:
             self._logger.info("Checkpoint running container")
             has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
-            has_sent = self.send_checkpoint(c_id=status_with_c_id.c_id)
+            has_checkpoint_sent = self.send_checkpoint(dst_repo, tag)
+            has_volume_sent = self.send_volume(dst_repo, tag, volumes) if len(volumes) != 0 else True
 
             if has_checkpointed is not True:
-                return self.returned_data_creator('checkpoint', code=status_with_c_id.code)
+                return self.returned_data_creator('checkpoint')
+            if has_volume_sent is not True:
+                return self.returned_data_creator('volume')
             if has_sent is not True:
-                return self.returned_data_creator('send_checkpoint', code=status_with_c_id.code)
+                return self.returned_data_creator('send_checkpoint')
         else:
-            return self.returned_data_creator('create', code=status_with_c_id.code)
+            return self.returned_data_creator('create')
+
+        if 
 
         # 5. Restore the App based on the data
         self._logger.info("Restore container at dst host")
@@ -160,15 +167,28 @@ class MigrationWorker:
     """
     Checkpoint and send checkpoint data to dst host
 
-    @params None
+    @params String repo
+    @params String tag
     @return True|False
     """
-    def send_checkpoint(self, c_id):
+    def send_checkpoint(self, src_repo, dst_repo, tag, volumes):
         src_c = self._d_cli.container_presence(self._c_name)
-        cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], src_c.id)
-        dst_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], c_id)
+        dst_dir_name = '{0}_{1}'.format(dst_repo,tag)
+        cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_dir'], src_c.id)
+        dst_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dst_dir_name)
         is_success = Rsync.call(cp_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
         return is_success
+
+    def send_volume(self, dst_repo, tag, volumes):
+        src_c = self._d_cli.container_presence(self._c_name)
+        dir_name = '{0}_{1}'.format(dst_repo,tag)
+        for vo in volumes:
+            src_path = vo.host_path
+            dst_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dir_name)
+            is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
+            if is_success is False:
+                return False
+        return True
 
     """
     Create docker tag, which is unique to generated worker
@@ -205,6 +225,9 @@ class MigrationWorker:
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'checkpoint':
             data["message"] = "cannot checkpoint"
+            return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
+        elif func_name is 'volume':
+            data["message"] = "cannot volume"
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'send_checkpoint':
             data["message"] = 'cannot send checkpoint data'
