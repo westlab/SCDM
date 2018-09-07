@@ -4,6 +4,7 @@ from enum import Enum
 import json
 import subprocess as sp
 import configparser
+import pdb
 
 from tool.common.logging.logger_factory import LoggerFactory
 from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
@@ -239,7 +240,7 @@ class DockerBaseApi:
         # set user defined values
         dict = { 'volumes': volumes,'ipc_mode': self._basic_config['container']['ipc_namespace']}
         dict['name'] = options['name'] if options['name'] is not None else self._basic_config['container']['default_name']
-        if options['port'] is not None:
+        if 'port' in options:
             dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
         return dict
 

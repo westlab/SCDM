@@ -2,6 +2,7 @@ from concurrent import futures
 import grpc
 import time
 import os
+import pdb
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
 from tool.docker.docker_api import DockerApi
@@ -26,8 +27,9 @@ def dict_convetor(options):
     # O means that a developer does not specify a port number
     dict = {
         'name': options.container_name,
-        'port': {'host': options.port.host, 'container': options.port.container} if options.port is not 0 else None,
     }
+    if options.port.host is not 0 and options.port.container:
+        dict['port'] = { 'host': options.port.host, 'container': options.port.container }
     return dict
 
 class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
