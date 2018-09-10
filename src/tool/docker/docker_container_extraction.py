@@ -25,7 +25,6 @@ class DockerVolume(DockerBaseApi):
         self._kind = VolumeType.volume if kind == 'volume' else VolumeType.bind
         self._h_path = Path(host_path)
         self._d_path = Path(docker_path)
-        self._name = name
         self._lo_client = cli if cli is not None else docker.APIClient()  
 
     @property
@@ -45,7 +44,7 @@ class DockerVolume(DockerBaseApi):
                 volumes = lo_cli.inspect_container(c_name)['Mounts']
                 if volumes:
                     for vo in volumes:
-                        arr_volumes.append(cls(vo[ vo['Type'], vo['Source'], vo['Destination'], lo_cli, vo['Name']))
+                        arr_volumes.append(cls(vo['Type'], vo['Source'], vo['Destination'], lo_cli))
             return arr_volumes
         except docker.errors.NotFound:
             return arr_volumes
