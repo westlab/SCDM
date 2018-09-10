@@ -247,6 +247,11 @@ class DockerBaseApi:
         dict['name'] = options['name'] if options['name'] is not None else self._basic_config['container']['default_name']
         if 'port' in options:
             dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
+        if 'volumes' in options:
+            vo_options = {}
+            for vo in volumes:
+                vo_options[self._d_config['destination']['default_dir']] =  {'bind': vo.d_path, 'mode': 'rw'}
+            dict['volumes'] = vo_options
         return dict
 
     """

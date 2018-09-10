@@ -137,7 +137,6 @@ class MigrationWorker:
         # 2. Create checkpoints
         # 3. Send checkpoints docker
         # 4. Send volume 
-        # 5. create a container
         pulled_image = rpc_client.pull(i_name=dst_repo, version=tag, c_name=self._c_name)
         volumes = DockerVolume.collect_volumes(self._c_name, self._d_client.lo_client, self._d_client.client)
         if pulled_image is not None:
@@ -155,13 +154,17 @@ class MigrationWorker:
         else:
             return self.returned_data_creator('create')
 
-        if 
+        # 5. create a container
+        # 6. Restore the App based on the data
+        #status_with_c_id = rpc_client.create_container(i_name=repo, version=tag, c_name=self._c_name, volumes=volumes)
+        #if status_with_c_id.code ==  CODE_SUCCESS:
+        #    self._logger.info("Restore container at dst host")
+        #    code = rpc_client.restore(self._c_name, need_tmp_dir=True)
+        #    if code != CODE_SUCCESS:
+        #        return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        #else:
+        #    return self.returned_data_creator('create')
 
-        # 5. Restore the App based on the data
-        self._logger.info("Restore container at dst host")
-        code = rpc_client.restore(self._c_name, need_tmp_dir=True)
-        if code != CODE_SUCCESS:
-            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
 
     """
