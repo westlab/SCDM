@@ -160,7 +160,6 @@ class MigrationWorker:
             has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
             has_checkpoint_sent = self.send_checkpoint(src_repo, tag)
             has_volume_sent = self.send_volume(dst_repo, tag, volumes) if len(volumes) != 0 else True
-            pdb.set_trace()
 
             if has_checkpointed is not True:
                 return self.returned_data_creator('checkpoint')

@@ -44,10 +44,11 @@ class TimeRecorder:
         "service_downtime",                 #1
         "commit",                           #2
         "push",                             #3
-        "create_c",                         #4
+        "pull",                             #4
         "checkpoint",                       #5
         "rsync_c_fs",                       #6
-        "restore",                          #7
+        "create_c",                         #7
+        "restore",                          #8
     ]
 
     def __init__(self, name, cols=DEFAULT_COLS, migration_type='proposed'):
