@@ -2,7 +2,9 @@ import configparser
 from http import HTTPStatus
 from datetime import datetime
 from subprocess import Popen
+from pathlib import Path
 import pdb # for debug
+import copy
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
@@ -122,9 +124,21 @@ class MigrationWorker:
     def run_involving_commit(self):
         self._logger.info("run_with_image_migration: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
+        tag = self.tag_creator()
+
         src_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['private'],i_name=self._i_name)
         dst_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['local'],i_name=self._i_name)
-        tag = self.tag_creator()
+        dir_name = '{0}_{1}'.format(self._i_name,tag)
+        dst_default_path = '{0}/{1}'.format(self._d_config['destination']['default_dir'], dir_name)
+        volumes=[]
+        c_volume_options = []
+
+        for vo in DockerVolume.collect_volumes(self._c_name, self._d_cli.lo_client, self._d_cli.client):
+            vo_hash = vo.hash_converter()
+            c_vo_hash = copy.copy(vo_hash)
+            c_vo_hash['h_path'] = '{default_path}/{dir_name}'.format(default_path=dst_default_path, dir_name=Path(vo_hash['h_path']).name)
+            volumes.append(vo_hash)
+            c_volume_options.append(c_vo_hash)
 
         # 1. Inspect images
         #code = rpc_client.inspect(i_name=repo, version=tag, c_name=self._c_name)
@@ -140,7 +154,7 @@ class MigrationWorker:
         # 3. Send checkpoints docker
         # 4. Send volume 
         pulled_image = rpc_client.pull(i_name=dst_repo, version=tag)
-        volumes = [vo.hash_converter() for vo in DockerVolume.collect_volumes(self._c_name, self._d_cli.lo_client, self._d_cli.client)]
+
         if pulled_image is not None:
             self._logger.info("Checkpoint running container")
             has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
@@ -158,12 +172,12 @@ class MigrationWorker:
 
         #5. create a container
         #6. Restore the App based on the data
-        status_with_c_id = rpc_client.create_container(i_name=dst_repo, version=tag, c_name=self._c_name, volumes=volumes)
+
+        status_with_c_id = rpc_client.create_container(i_name=dst_repo, version=tag, c_name=self._c_name, volumes=c_volume_options)
         if status_with_c_id.code ==  CODE_SUCCESS:
             self._logger.info("Restore container at dst host")
-            dir_name = '{0}_{1}'.format(self._i_name,tag)
-            default_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dir_name)
-            code = rpc_client.restore(self._c_name, default_path=default_path)
+            restore_target_path = '{0}/checkpoints'.format(dst_default_path)
+            code = rpc_client.restore(self._c_name, default_path=restore_target_path)
             if code != CODE_SUCCESS:
                 return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         else:

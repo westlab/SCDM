@@ -254,7 +254,7 @@ class DockerBaseApi:
             dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
         if 'volumes' in options:
             vo_options = {}
-            for vo in volumes:
+            for vo in options['volumes']:
                 vo_options[self._d_config['destination']['default_dir']] =  {'bind': vo.d_path, 'mode': 'rw'}
             dict['volumes'] = vo_options
         return dict

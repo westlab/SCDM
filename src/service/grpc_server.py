@@ -28,6 +28,8 @@ def dict_convetor(options):
     dict = { 'name': options.container_name }
     if options.port.host is not 0 and options.port.container is not 0:
         dict['port'] =  {'host': options.port.host, 'container': options.port.container}
+    if len(options.volume) is not 0
+        dict['volumes'] = options.volumes
     return dict
 
 class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
@@ -177,7 +179,6 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         self._logger.info("Create Container")
         options = dict_convetor(req.options)
         pulled_image = self._cli.fetch_image(name=req.image_name, version=req.version)
-
         if pulled_image is not None:
             self._logger.info("Create the container from the image with given options")
             c = self._cli.create(req.image_name, options, req.version)
