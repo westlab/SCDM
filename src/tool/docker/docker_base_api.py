@@ -255,7 +255,7 @@ class DockerBaseApi:
         if 'volumes' in options:
             vo_options = {}
             for vo in options['volumes']:
-                vo_options[self._basic_config['destination']['default_dir']] =  {'bind': vo.d_path, 'mode': 'rw'}
+                vo_options[vo.h_path] =  {'bind': vo.d_path, 'mode': 'rw'}
             dict['volumes'] = vo_options
         return dict
 
