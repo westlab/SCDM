@@ -245,17 +245,17 @@ class DockerBaseApi:
     @return dict
     """
     def container_option(self, options):
-        tmp_dir = self._basic_config['container']['volume_tmp_dir']
-        volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
+        #tmp_dir = self._basic_config['container']['volume_tmp_dir']
+        #volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
         # set user defined values
-        dict = { 'volumes': volumes,'ipc_mode': self._basic_config['container']['ipc_namespace']}
+        dict = { 'ipc_mode': self._basic_config['container']['ipc_namespace']}
         dict['name'] = options['name'] if options['name'] is not None else self._basic_config['container']['default_name']
         if 'port' in options:
             dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
         if 'volumes' in options:
             vo_options = {}
             for vo in options['volumes']:
-                vo_options[self._d_config['destination']['default_dir']] =  {'bind': vo.d_path, 'mode': 'rw'}
+                vo_options[self._basic_config['destination']['default_dir']] =  {'bind': vo.d_path, 'mode': 'rw'}
             dict['volumes'] = vo_options
         return dict
 
