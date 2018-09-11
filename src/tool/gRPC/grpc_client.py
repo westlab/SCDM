@@ -20,8 +20,8 @@ class RpcClient:
         status = self._stub.CreateTmpDir(docker_migration_pb2.Signal(name=c_id))
         return status.code
 
-    def restore(self, c_name, cp_name='checkpoint1', need_tmp_dir=False):
-        status = self._stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name=c_name, cp_name=cp_name, need_tmp_dir=need_tmp_dir))
+    def restore(self, c_name, cp_name='checkpoint1', default_path=None):
+        status = self._stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name=c_name, cp_name=cp_name, default_path=default_path))
         return status.code
 
     def inspect(self, i_name, version, c_name):
@@ -31,7 +31,7 @@ class RpcClient:
         return status.code
 
     def pull(self, i_name, version):
-        status = self.PullImage(docker_migration_pb2.DockerSummary(image_name=i_name, version=version))
+        status = self._stub.PullImage(docker_migration_pb2.DockerSummary(image_name=i_name, version=version))
         return status.code
 
     def create_container(self, i_name, version, c_name, ports=None, volumes=None):

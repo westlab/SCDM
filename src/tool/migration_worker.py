@@ -2,12 +2,14 @@ import configparser
 from http import HTTPStatus
 from datetime import datetime
 from subprocess import Popen
+import pdb # for debug
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
 from tool.common.rsync import Rsync
 from tool.docker.docker_layer import DockerLayer
 from tool.docker.docker_container_extraction import DockerContainerExtraction
+from tool.docker.docker_container_extraction import DockerVolume
 from tool.gRPC.grpc_client import RpcClient
 
 # For evaluation
@@ -137,33 +139,35 @@ class MigrationWorker:
         # 2. Create checkpoints
         # 3. Send checkpoints docker
         # 4. Send volume 
-        pulled_image = rpc_client.pull(i_name=dst_repo, version=tag, c_name=self._c_name)
-        volumes = DockerVolume.collect_volumes(self._c_name, self._d_client.lo_client, self._d_client.client)
+        pulled_image = rpc_client.pull(i_name=dst_repo, version=tag)
+        volumes = [vo.hash_converter() for vo in DockerVolume.collect_volumes(self._c_name, self._d_cli.lo_client, self._d_cli.client)]
         if pulled_image is not None:
             self._logger.info("Checkpoint running container")
             has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
-            has_checkpoint_sent = self.send_checkpoint(dst_repo, tag)
+            has_checkpoint_sent = self.send_checkpoint(src_repo, tag)
             has_volume_sent = self.send_volume(dst_repo, tag, volumes) if len(volumes) != 0 else True
 
             if has_checkpointed is not True:
                 return self.returned_data_creator('checkpoint')
+            if has_checkpoint_sent is not True:
+                return self.returned_data_creator('send_checkpoint')
             if has_volume_sent is not True:
                 return self.returned_data_creator('volume')
-            if has_sent is not True:
-                return self.returned_data_creator('send_checkpoint')
         else:
             return self.returned_data_creator('create')
 
-        # 5. create a container
-        # 6. Restore the App based on the data
-        #status_with_c_id = rpc_client.create_container(i_name=repo, version=tag, c_name=self._c_name, volumes=volumes)
-        #if status_with_c_id.code ==  CODE_SUCCESS:
-        #    self._logger.info("Restore container at dst host")
-        #    code = rpc_client.restore(self._c_name, need_tmp_dir=True)
-        #    if code != CODE_SUCCESS:
-        #        return self.returned_data_creator(rpc_client.restore.__name__, code=code)
-        #else:
-        #    return self.returned_data_creator('create')
+        #5. create a container
+        #6. Restore the App based on the data
+        status_with_c_id = rpc_client.create_container(i_name=dst_repo, version=tag, c_name=self._c_name, volumes=volumes)
+        if status_with_c_id.code ==  CODE_SUCCESS:
+            self._logger.info("Restore container at dst host")
+            dir_name = '{0}_{1}'.format(self._i_name,tag)
+            default_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dir_name)
+            code = rpc_client.restore(self._c_name, default_path=default_path)
+            if code != CODE_SUCCESS:
+                return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        else:
+            return self.returned_data_creator('create')
 
         return self.returned_data_creator('fin')
 
@@ -174,9 +178,9 @@ class MigrationWorker:
     @params String tag
     @return True|False
     """
-    def send_checkpoint(self, src_repo, dst_repo, tag, volumes):
+    def send_checkpoint(self, src_repo, tag):
         src_c = self._d_cli.container_presence(self._c_name)
-        dst_dir_name = '{0}_{1}'.format(dst_repo,tag)
+        dst_dir_name = '{0}_{1}'.format(self._i_name,tag)
         cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_dir'], src_c.id)
         dst_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dst_dir_name)
         is_success = Rsync.call(cp_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
@@ -184,9 +188,9 @@ class MigrationWorker:
 
     def send_volume(self, dst_repo, tag, volumes):
         src_c = self._d_cli.container_presence(self._c_name)
-        dir_name = '{0}_{1}'.format(dst_repo,tag)
+        dir_name = '{0}_{1}'.format(self._i_name,tag)
         for vo in volumes:
-            src_path = vo.host_path
+            src_path = vo['h_path']
             dst_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dir_name)
             is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
             if is_success is False:

@@ -76,6 +76,6 @@ message CheckpointSummary {
     string c_name = 1;
     string cp_name = 2;
     // Cp_name represents checkpoint dir name
-    bool need_tmp_dir = 3;
+    string default_path = 3;
 }
 

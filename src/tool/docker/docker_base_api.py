@@ -19,6 +19,12 @@ class DockerBaseApi:
         self._basic_config = config
         self._logger = LoggerFactory.create_logger(self)
 
+    @property
+    def client(self):
+        return self._client
+    @property
+    def lo_client(self):
+        return self._lo_client
 
     @classmethod
     def reload_daemon(cls):
@@ -215,13 +221,12 @@ class DockerBaseApi:
     @params String cp_name='checkpoint'
     @return True|False
     """
-    def restore(self, c_name, cp_name='checkpoint1', need_tmp_dir=False):
+    def restore(self, c_name, cp_name='checkpoint1', default_path=None):
         try:
             c= self.container_presence(c_name)
             if c is not None:
-                if need_tmp_dir is True:
-                    cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
-                    cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
+                if default_path is not None:
+                    cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=default_path, c_name=c_name)
                 else:
                     cmd='docker start --checkpoint {cp_name} {c_name}'.format(cp_name=cp_name, c_name=c_name)
             else:
