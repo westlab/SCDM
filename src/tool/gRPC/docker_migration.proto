@@ -9,6 +9,7 @@ service  DockerMigrator {
     rpc RestoreContainer (CheckpointSummary) returns (Status) {}
     rpc InspectArtifacts (DockerSummary) returns (Status) {}
     rpc CreateContainer (DockerSummary) returns (Status) {}
+    rpc PullImage(DockerSummary) returns (Status) {}
     rpc CreateTmpDir (Signal) returns (Status) {}
     rpc ReloadDockerd (DockerSummary) returns (Status) {}
     rpc AllocateContainerArtifacts (ContainerArtifacts) returns (Status) {}
@@ -29,6 +30,7 @@ message DockerSummary {
 message ContainerOptions {
     string container_name = 1;
     Port port = 2;
+    repeated Volume volumes=3;
     //TODO: additional options such as volumes, shm_size...etc...
 }
 
@@ -72,7 +74,8 @@ message Status {
 message CheckpointSummary {
     // Container name
     string c_name = 1;
-    // Cp_name represents checkpoint dir name
     string cp_name = 2;
+    // Cp_name represents checkpoint dir name
+    string default_path = 3;
 }
 

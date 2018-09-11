@@ -2,13 +2,16 @@ import configparser
 from http import HTTPStatus
 from datetime import datetime
 from subprocess import Popen
+from pathlib import Path
 import pdb # for debug
+import copy
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
 from tool.common.rsync import Rsync
 from tool.docker.docker_layer import DockerLayer
 from tool.docker.docker_container_extraction import DockerContainerExtraction
+from tool.docker.docker_container_extraction import DockerVolume
 from tool.gRPC.grpc_client import RpcClient
 
 # For evaluation
@@ -53,8 +56,6 @@ class MigrationWorker:
         d_recorder = DiskRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
         t_recorder = TimeRecorder('{0}_{1}'.format(self._c_name, self._bandwidth) )
         r_recorder = ResourceRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
-        #repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
-        tag = self.tag_creator()
 
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
@@ -120,61 +121,95 @@ class MigrationWorker:
         d_recorder.write()
         return self.returned_data_creator('fin')
 
-    def run_involving_image_layer_migration(self):
-        print('hoge')
-
     def run_involving_commit(self):
         self._logger.info("run_with_image_migration: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['remote'],i_name=self._i_name)
         tag = self.tag_creator()
 
+        src_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['private'],i_name=self._i_name)
+        dst_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['local'],i_name=self._i_name)
+        dir_name = '{0}_{1}'.format(self._i_name,tag)
+        dst_default_path = '{0}/{1}'.format(self._d_config['destination']['default_dir'], dir_name)
+        volumes=[]
+        c_volume_options = []
+
+        for vo in DockerVolume.collect_volumes(self._c_name, self._d_cli.lo_client, self._d_cli.client):
+            vo_hash = vo.hash_converter()
+            c_vo_hash = copy.copy(vo_hash)
+            c_vo_hash['h_path'] = '{default_path}/{dir_name}'.format(default_path=dst_default_path, dir_name=Path(vo_hash['h_path']).name)
+            volumes.append(vo_hash)
+            c_volume_options.append(c_vo_hash)
+
         # 1. Inspect images
-        code = rpc_client.inspect(i_name=repo, version=tag, c_name=self._c_name)
-        if code == CODE_NO_IMAGE:
-            image = self._d_cli.commit(c_name=self._c_name, repository=repo, tag=tag)
-            if image is not None:
-                self._logger.info("Push Docker repo:{0}, tag:{1}".format(repo, tag))
-                has_pushed = self._d_cli.push(repository=repo, tag=tag)
-                if has_pushed is False:
-                    return self.returned_data_creator('push')
-            else:
-                 return self.returned_data_creator('commit')
-        # 2. Fetch Docker image from docker hub, and Create a containeri
-        # 3. Create checkpoints
-        # 4. Send checkpoints docker
-        status_with_c_id = rpc_client.create_container(i_name=repo, version=tag, c_name=self._c_name)
-        if status_with_c_id.code == CODE_SUCCESS:
+        #code = rpc_client.inspect(i_name=repo, version=tag, c_name=self._c_name)
+        image = self._d_cli.commit(c_name=self._c_name, repository=src_repo, tag=tag)
+        if image is not None:
+            self._logger.info("Push Docker repo:{0}, tag:{1}".format(src_repo, tag))
+            has_pushed = self._d_cli.push(repository=src_repo, tag=tag)
+            if has_pushed is False:
+                return self.returned_data_creator('push')
+        else:
+            return self.returned_data_creator('commit')
+        # 2. Create checkpoints
+        # 3. Send checkpoints docker
+        # 4. Send volume 
+        pulled_image = rpc_client.pull(i_name=dst_repo, version=tag)
+
+        if pulled_image is not None:
             self._logger.info("Checkpoint running container")
-            has_checkpointed = self._d_cli.checkpoint(self._c_name)
-            has_sent = self.send_checkpoint(c_id=status_with_c_id.c_id)
+            has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
+            has_checkpoint_sent = self.send_checkpoint(src_repo, tag)
+            has_volume_sent = self.send_volume(dst_repo, tag, volumes) if len(volumes) != 0 else True
 
             if has_checkpointed is not True:
-                return self.returned_data_creator('checkpoint', code=status_with_c_id.code)
-            if has_sent is not True:
-                return self.returned_data_creator('send_checkpoint', code=status_with_c_id.code)
+                return self.returned_data_creator('checkpoint')
+            if has_checkpoint_sent is not True:
+                return self.returned_data_creator('send_checkpoint')
+            if has_volume_sent is not True:
+                return self.returned_data_creator('volume')
         else:
-            return self.returned_data_creator('create', code=status_with_c_id.code)
+            return self.returned_data_creator('create')
 
-        # 5. Restore the App based on the data
-        self._logger.info("Restore container at dst host")
-        code = rpc_client.restore(self._c_name)
-        if code != CODE_SUCCESS:
-            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        #5. create a container
+        #6. Restore the App based on the data
+
+        status_with_c_id = rpc_client.create_container(i_name=dst_repo, version=tag, c_name=self._c_name, volumes=c_volume_options)
+        if status_with_c_id.code ==  CODE_SUCCESS:
+            self._logger.info("Restore container at dst host")
+            restore_target_path = '{0}/checkpoints'.format(dst_default_path)
+            code = rpc_client.restore(self._c_name, default_path=restore_target_path)
+            if code != CODE_SUCCESS:
+                return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        else:
+            return self.returned_data_creator('create')
+
         return self.returned_data_creator('fin')
 
     """
     Checkpoint and send checkpoint data to dst host
 
-    @params None
+    @params String repo
+    @params String tag
     @return True|False
     """
-    def send_checkpoint(self, c_id):
+    def send_checkpoint(self, src_repo, tag):
         src_c = self._d_cli.container_presence(self._c_name)
-        cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], src_c.id)
-        dst_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_cp_dir'], c_id)
+        dst_dir_name = '{0}_{1}'.format(self._i_name,tag)
+        cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_dir'], src_c.id)
+        dst_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dst_dir_name)
         is_success = Rsync.call(cp_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
         return is_success
+
+    def send_volume(self, dst_repo, tag, volumes):
+        src_c = self._d_cli.container_presence(self._c_name)
+        dir_name = '{0}_{1}'.format(self._i_name,tag)
+        for vo in volumes:
+            src_path = vo['h_path']
+            dst_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dir_name)
+            is_success = Rsync.call(src_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
+            if is_success is False:
+                return False
+        return True
 
     """
     Create docker tag, which is unique to generated worker
@@ -211,6 +246,9 @@ class MigrationWorker:
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'checkpoint':
             data["message"] = "cannot checkpoint"
+            return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
+        elif func_name is 'volume':
+            data["message"] = "cannot volume"
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'send_checkpoint':
             data["message"] = 'cannot send checkpoint data'

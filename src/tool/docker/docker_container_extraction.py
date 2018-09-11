@@ -20,7 +20,7 @@ class VolumeType(Enum):
     bind = 2
 
 class DockerVolume(DockerBaseApi):
-    def __init__(self, kind, host_path, docker_path, cli=None):
+    def __init__(self, kind, host_path, docker_path, cli=None, name=None):
         super().__init__()
         self._kind = VolumeType.volume if kind == 'volume' else VolumeType.bind
         self._h_path = Path(host_path)

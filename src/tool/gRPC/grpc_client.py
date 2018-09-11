@@ -1,4 +1,5 @@
 import grpc
+import pdb # for debug
 import tool.gRPC.docker_migration_pb2 as docker_migration_pb2
 import tool.gRPC.docker_migration_pb2_grpc as docker_migration_pb2_grpc
 
@@ -20,8 +21,8 @@ class RpcClient:
         status = self._stub.CreateTmpDir(docker_migration_pb2.Signal(name=c_id))
         return status.code
 
-    def restore(self, c_name):
-        status = self._stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name=c_name))
+    def restore(self, c_name, cp_name='checkpoint1', default_path=None):
+        status = self._stub.RestoreContainer(docker_migration_pb2.CheckpointSummary(c_name=c_name, cp_name=cp_name, default_path=default_path))
         return status.code
 
     def inspect(self, i_name, version, c_name):
@@ -30,9 +31,13 @@ class RpcClient:
         status = self._stub.InspectArtifacts(docker_migration_pb2.DockerSummary(image_name=i_name, version=version, options=c_opt))
         return status.code
 
-    def create_container(self, i_name, version, c_name):
-        port = docker_migration_pb2.Port(host=9999, container=9999)
-        c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name, port=port)
+    def pull(self, i_name, version):
+        status = self._stub.PullImage(docker_migration_pb2.DockerSummary(image_name=i_name, version=version))
+        return status.code
+
+    def create_container(self, i_name, version, c_name, ports=None, volumes=None):
+        port = docker_migration_pb2.Port(host=ports['host'], container=ports['cotainer']) if ports is not None else None
+        c_opt = docker_migration_pb2.ContainerOptions(container_name=c_name, port=port, volumes=volumes)
         status_with_c_id = self._stub.CreateContainer(docker_migration_pb2.DockerSummary(image_name=i_name, version=version, options=c_opt))
         return  status_with_c_id
 

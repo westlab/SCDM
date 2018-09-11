@@ -1,8 +1,10 @@
 # doc https://docker-py.readthedocs.io/en/stable/
 import docker
-import configparser
+from enum import Enum
 import json
 import subprocess as sp
+import configparser
+import pdb
 
 from tool.common.logging.logger_factory import LoggerFactory
 from settings.docker import DOCKER_BASIC_SETTINGS_PATH, CREDENTIALS_SETTING_PATH
@@ -13,8 +15,16 @@ class DockerBaseApi:
         config = configparser.ConfigParser()
         config.read(DOCKER_BASIC_SETTINGS_PATH)
         self._client = docker.from_env()
+        self._lo_client = docker.APIClient()
         self._basic_config = config
         self._logger = LoggerFactory.create_logger(self)
+
+    @property
+    def client(self):
+        return self._client
+    @property
+    def lo_client(self):
+        return self._lo_client
 
     @classmethod
     def reload_daemon(cls):
@@ -60,8 +70,11 @@ class DockerBaseApi:
     @return Image
     """
     def pull(self, repository, tag="latest"):
-        image = self._client.images.pull(self.name_converter(repository, tag))
-        return image
+        try: 
+            image = self._client.images.pull(self.name_converter(repository, tag))
+            return image
+        except:
+            return None
 
     """
     Push docker image based on the repository and tag
@@ -188,9 +201,11 @@ class DockerBaseApi:
     #@params Boolean leave_running
     @return True|False
     """
-    def checkpoint(self, c_name, cp_name='checkpoint1'):
-        #cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_cp_dir'], c_name=c_name, cp_name=cp_name)
-        cmd='docker checkpoint create {c_name} {cp_name}'.format(c_name=c_name, cp_name=cp_name)
+    def checkpoint(self, c_name, cp_name='checkpoint1', need_tmp_dir=False):
+        if need_tmp_dir is True:
+            cmd='docker checkpoint create --checkpoint-dir {cp_dir} {c_name} {cp_name}'.format(cp_dir=self._basic_config['checkpoint']['default_dir'], c_name=c_name, cp_name=cp_name)
+        else:
+            cmd='docker checkpoint create {c_name} {cp_name}'.format(c_name=c_name, cp_name=cp_name)
         try:
             result = sp.run(cmd.strip().split(" "), check=True)
             #print(result)
@@ -206,13 +221,14 @@ class DockerBaseApi:
     @params String cp_name='checkpoint'
     @return True|False
     """
-    def restore(self, c_name, cp_name='checkpoint1'):
+    def restore(self, c_name, cp_name='checkpoint1', default_path=None):
         try:
             c= self.container_presence(c_name)
             if c is not None:
-                #cp_dir = '{0}/{1}/checkpoints'.format(self._basic_config['checkpoint']['default_cp_dir'], c.id)
-                #cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=cp_dir, c_name=c_name)
-                cmd='docker start --checkpoint {cp_name} {c_name}'.format(cp_name=cp_name, c_name=c_name)
+                if default_path is not None:
+                    cmd='docker start --checkpoint {cp_name} --checkpoint-dir {cp_dir} {c_name}'.format(cp_name=cp_name, cp_dir=default_path, c_name=c_name)
+                else:
+                    cmd='docker start --checkpoint {cp_name} {c_name}'.format(cp_name=cp_name, c_name=c_name)
             else:
                 raise
             result = sp.run(cmd.strip().split(" "), check=True)
@@ -229,13 +245,18 @@ class DockerBaseApi:
     @return dict
     """
     def container_option(self, options):
-        tmp_dir = self._basic_config['container']['volume_tmp_dir']
-        volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
+        #tmp_dir = self._basic_config['container']['volume_tmp_dir']
+        #volumes = {tmp_dir:  {'bind': tmp_dir, 'mode': 'rw'}}
         # set user defined values
-        dict = { 'volumes': volumes,'ipc_mode': self._basic_config['container']['ipc_namespace']}
+        dict = { 'ipc_mode': self._basic_config['container']['ipc_namespace']}
         dict['name'] = options['name'] if options['name'] is not None else self._basic_config['container']['default_name']
-        if options['port'] is not None:
+        if 'port' in options:
             dict['ports'] = { self.port_protocol_converter(options['port']['host']): options['port']['container'] }
+        if 'volumes' in options:
+            vo_options = {}
+            for vo in options['volumes']:
+                vo_options[vo.h_path] =  {'bind': vo.d_path, 'mode': 'rw'}
+            dict['volumes'] = vo_options
         return dict
 
     """

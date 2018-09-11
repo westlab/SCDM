@@ -2,6 +2,7 @@ from concurrent import futures
 import grpc
 import time
 import os
+import pdb
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
 from tool.docker.docker_api import DockerApi
@@ -24,10 +25,11 @@ for making easy to pass variable to next functon
 """
 def dict_convetor(options):
     # O means that a developer does not specify a port number
-    dict = {
-        'name': options.container_name,
-        'port': {'host': options.port.host, 'container': options.port.container} if options.port is not 0 else None,
-    }
+    dict = { 'name': options.container_name }
+    if options.port.host is not 0 and options.port.container is not 0:
+        dict['port'] =  {'host': options.port.host, 'container': options.port.container}
+    if len(options.volumes) is not 0:
+        dict['volumes'] = options.volumes
     return dict
 
 class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
@@ -104,7 +106,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def RestoreContainer(self, req, context):
         self._logger.info("Restore Container")
-        code = CODE_SUCCESS if self._cli.restore(req.c_name) is True else os.errno.EHOSTDOWN
+        code = CODE_SUCCESS if self._cli.restore(req.c_name, cp_name=req.cp_name, default_path=req.default_path) is True else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=code)
 
     """
@@ -152,6 +154,20 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         return docker_migration_pb2.Status(code=code)
 
     """
+    Pull image
+    """
+    def PullImage(self, req, context):
+        self._logger.info("Pull image")
+        pulled_image = self._cli.fetch_image(name=req.image_name, version=req.version)
+        if pulled_image is not None:
+            self._logger.info("Create the container from the image with given options")
+            return docker_migration_pb2.Status(code=CODE_SUCCESS)
+        else:
+            self._logger.info("Cannot get the specified image")
+            code =  os.errno.EHOSTDOWN
+            return docker_migration_pb2.Status(code=code)
+
+    """
     Create a container create,
     and if the host has not the container, host will pull it
     @params DockerSummary(String image_name,
@@ -163,7 +179,6 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         self._logger.info("Create Container")
         options = dict_convetor(req.options)
         pulled_image = self._cli.fetch_image(name=req.image_name, version=req.version)
-
         if pulled_image is not None:
             self._logger.info("Create the container from the image with given options")
             c = self._cli.create(req.image_name, options, req.version)
