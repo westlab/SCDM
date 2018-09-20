@@ -21,10 +21,11 @@ class ConservativeMigrationConst:
     SERVICE_DOWNTIME=1
     COMMIT=2
     PUSH=3
-    CREATE_C=4
+    PULL=4
     CHECKPOINT=5
     RSYNC_C_FS=6
-    RESTORE=7
+    CREATE_C=7
+    RESTORE=8
 
 class TimeRecorder:
     DEFAULT_PATH = "/home/miura/programming/SCDM/logs/recorders"
@@ -51,7 +52,7 @@ class TimeRecorder:
         "restore",                          #8
     ]
 
-    def __init__(self, name, cols=DEFAULT_COLS, migration_type='proposed'):
+    def __init__(self, name, migration_type='proposed'):
         base_file_name = '{name}_time_{time}.csv'.format(name=name, time=datetime.now().strftime('%Y%m%d_%H%M%S'))
         self._cols = self.CON_COLS if migration_type is 'conservative' else self.DEFAULT_COLS
         self._file_path = self.default_path()/base_file_name
@@ -88,5 +89,5 @@ class TimeRecorder:
         with open(str(self._file_path), 'a') as f:
             writer = csv.writer(f)
             writer.writerow(self._cols)
-            writer.writerow(formatted_date)
+            writer.writerow(formatted_data)
 
