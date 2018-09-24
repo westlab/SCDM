@@ -17,6 +17,14 @@ class ClientMessageCode(Enum):
     SERV_CHG_SIG = 8
     DM_ASK_APP_INFO = 9
     DM_INIT_BUF = 10
+    CLI_REINIT=14
+
+class ClientSignalCode(Enum):
+    NONE=0
+    REQUESTED=1
+    DONE=2
+    MIGRATING=3
+    MIGRATED=4
 
 class RemoteComClient:
     BUFFER_SIZE = 1024
