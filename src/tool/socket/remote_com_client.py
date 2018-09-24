@@ -45,6 +45,7 @@ class SmartCommunityRouterAPI:
         return info
     
     def prepare_app_launch(self, buf, sig, rules):
+        app_id = 0
         i_message_type = ClientMessageCode.DM_INIT_BUF.value
         ret = self._soc.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf')
         dst_app_id = self._soc.read()['payload']
