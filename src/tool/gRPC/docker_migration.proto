@@ -21,7 +21,7 @@ service  DockerMigrator {
 
     // For Smart Coommunity Router
     // A simple RPC
-    rpc PrepareAppLanch (AppInfo) returns (Status) {}
+    rpc PrepareAppLaunch (AppInfo) returns (Status) {}
 }
 
 // A DockerSummary is a message

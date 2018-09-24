@@ -38,8 +38,8 @@ class SmartCommunityRouterAPI:
         ret = self._soc.send_formalized_message(app_id, i_message_type)
         message = self._soc.read()
         info = { 
-                "buf_loc": message['payload'].split('|')[:1],
-                "sig_loc": message['payload'].split('|')[1:2],
+                "buf_loc": message['payload'].split('|')[:1][0],
+                "sig_loc": message['payload'].split('|')[1:2][0],
                 "rules": message['payload'].split('|')[2:]
                 }
         return info
@@ -50,11 +50,16 @@ class SmartCommunityRouterAPI:
         dst_app_id = self._soc.read()['payload']
 
         #i_message_type = ClientMessageCode.BULK_RULE_INS.value
-        #ret = self._soc.send_formalized_message(app_id, i_message_type, '|'.join(rules))
+        #ret = self._soc.send_formalized_message(dst_app_id, i_message_type, '|'.join(rules))
         #message =i self._soc.read()
 
         return dst_app_id
 
+    def prepare_checkpoint(self, app_id):
+        i_message_type = ClientMessageCode.SERV_CHG_SIG.value
+        ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.REQUESTED.value)
+        message = cli.read()
+        return message
 
 class RemoteComClient:
     BUFFER_SIZE = 1024
