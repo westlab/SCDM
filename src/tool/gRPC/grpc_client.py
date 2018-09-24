@@ -57,3 +57,7 @@ class RpcClient:
                                                                              options=c_opt))
         return gen
 
+    def prepare_app_launch(self, buf_loc, sig_loc, rules):
+        dst_app_id = self._stub.PrepareAppLanch(docker_migration_pb2.AppInfo(buf_loc=buf_loc, sig_loc=sig_loc, rules=rules))
+        return dst_app_id
+

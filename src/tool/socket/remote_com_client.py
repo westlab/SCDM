@@ -26,6 +26,36 @@ class ClientSignalCode(Enum):
     MIGRATING=3
     MIGRATED=4
 
+class SmartCommunityRouterAPI:
+    def __init__(self):
+        self._soc = RemoteComClient()
+
+    def connect(self):
+        self._soc.connect()
+
+    def get_app_info_dict(self, app_id):
+        i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
+        ret = self._soc.send_formalized_message(app_id, i_message_type)
+        message = self._soc.read()
+        info = { 
+                "buf_loc": message['payload'].split('|')[:1],
+                "sig_loc": message['payload'].split('|')[1:2],
+                "rules": message['payload'].split('|')[2:]
+                }
+        return info
+    
+    def prepare_app_launch(self, buf, sig, rules):
+        i_message_type = ClientMessageCode.DM_INIT_BUF.value
+        ret = self._soc.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf')
+        dst_app_id = self._soc.read()['payload']
+
+        #i_message_type = ClientMessageCode.BULK_RULE_INS.value
+        #ret = self._soc.send_formalized_message(app_id, i_message_type, '|'.join(rules))
+        #message =i self._soc.read()
+
+        return dst_app_id
+
+
 class RemoteComClient:
     BUFFER_SIZE = 1024
 
@@ -51,7 +81,6 @@ class RemoteComClient:
         message = self.formalize_message(app_id, message_type, payload)
         print("message: {0}".format(message))
         self.socket.send(message.encode())
-
 
     """
     Read socket data, and return the returned data
@@ -97,5 +126,4 @@ class RemoteComClient:
         arr = str_message.split(",")
         formatted_message = { key_arr[i]: arr[i] for i in range(len(key_arr)) }
         return formatted_message
-
 

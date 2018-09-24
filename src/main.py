@@ -68,7 +68,8 @@ def rpc_client():
                              i_name=args.image_name, version=version, c_name=args.container_name,
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
     #data = worker.run()
-    data = worker.run_involving_commit()
+    #data = worker.run_involving_commit()
+    data = worker.run_with_scr()
 
 def codegen():
     from service import codegen
@@ -123,7 +124,7 @@ def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
     i = DockerLayer()
-    i.execute_remapping('tatsuki/unix-socket')
+    i.execute_remapping('busybox')
 
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst

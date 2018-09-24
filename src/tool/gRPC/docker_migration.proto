@@ -4,6 +4,8 @@ package docker_migration;
 
 // The docker migration service definition
 service  DockerMigrator {
+
+    // For Docker 
     // A simple RPC
     rpc PingDockerServer (Signal) returns (Status) {}
     rpc RestoreContainer (CheckpointSummary) returns (Status) {}
@@ -15,6 +17,11 @@ service  DockerMigrator {
     rpc AllocateContainerArtifacts (ContainerArtifacts) returns (Status) {}
     // A server-to-client streaming RPC
     rpc RequestMigration (DockerSummary) returns (stream Status) {}
+
+
+    // For Smart Coommunity Router
+    // A simple RPC
+    rpc PrepareAppLanch (AppInfo) returns (Status) {}
 }
 
 // A DockerSummary is a message
@@ -53,6 +60,16 @@ message Volume {
     string d_path =3;
 }
 
+// A Checkpoint is mesage after creating checkpoint on src node
+// It contains c_name and cp_name, which represents checkpoint dir name,
+message CheckpointSummary {
+    // Container name
+    string c_name = 1;
+    string cp_name = 2;
+    // Cp_name represents checkpoint dir name
+    string default_path = 3;
+}
+
 // A Ping is a message for asking
 // whether the dockerd is runing or not
 // It containts a name.
@@ -69,13 +86,8 @@ message Status {
     string c_id = 2;
 }
 
-// A Checkpoint is mesage after creating checkpoint on src node
-// It contains c_name and cp_name, which represents checkpoint dir name,
-message CheckpointSummary {
-    // Container name
-    string c_name = 1;
-    string cp_name = 2;
-    // Cp_name represents checkpoint dir name
-    string default_path = 3;
+message AppInfo {
+    string buf_loc = 1;
+    string sig_loc = 2;
+    repeated string rules = 3;
 }
-
