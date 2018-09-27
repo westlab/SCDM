@@ -231,55 +231,46 @@ class MigrationWorker:
         scr_cli = SmartCommunityRouterAPI()
         scr_cli.connect()
 
-        # src app info
+        #### src app info
         app_id = 0
         app_info_dict = scr_cli.get_app_info_dict(app_id)
+        #### create buffer
+        dst_app_id = rpc_client.prepare_app_launch(app_info_dict['buf_loc'],app_info_dict['sig_loc'],app_info_dict['rules'])
 
-        # create buffer
-        dst_app_id = rpc_client.prepare_app_launch(app_info_dict['buf_loc'],
-                                                   app_info_dict['sig_loc'],
-                                                   app_info_dict['rules'])
+        ####  request ready for checkpoint
+        scr_cli.prepare_for_checkpoint(app_id)
 
-        # request ready for checkpoint
+        # Inspect Images
+        code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
 
-        # checkpoint
-        # send checkpoint
-        # request restore
+        # Checkpoint
+        has_checkpointed = self._d_cli.checkpoint(self._c_name)
 
+        if has_checkpointed is not True:
+            return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        has_create_tmp_dir = rpc_client.create_tmp_dir(self._c_id)
+        if has_create_tmp_dir is not CODE_SUCCESS:
+            #TODO: fix
+            return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
 
-        ## Inspect Images
-        #code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
+        # Send artifacts
+        has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        if has_sent is not True:
+            return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
+        code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
+                                                       self._d_c_extractor.c_id,
+                                                       self._d_c_extractor.i_layer_ids,
+                                                       self._d_c_extractor.c_layer_ids,
+                                                       volumes=volumes)
+        # Reload daemon
+        code = rpc_client.reload_daemon()
 
-        ## Checkpoint
-        #has_checkpointed = self._d_cli.checkpoint(self._c_name)
-
-        #if has_checkpointed is not True:
-        #    return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
-        #has_create_tmp_dir = rpc_client.create_tmp_dir(self._c_id)
-        #if has_create_tmp_dir is not CODE_SUCCESS:
-        #    #TODO: fix
-        #    return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
-
-        ## Send artifacts
-        #has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
-        #if has_sent is not True:
-        #    return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
-        #volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
-        #code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
-        #                                               self._d_c_extractor.c_id,
-        #                                               self._d_c_extractor.i_layer_ids,
-        #                                               self._d_c_extractor.c_layer_ids,
-        #                                               volumes=volumes)
-
-        ## Reload daemon
-        #code = rpc_client.reload_daemon()
-
-        ## Restore
-        #code = rpc_client.restore(self._c_name)
-        #if code != CODE_SUCCESS:
-        #    return self.returned_data_creator(rpc_client.restore.__name__, code=code)
-        #return self.returned_data_creator('fin')
-
+        # Restore
+        code = rpc_client.restore(self._c_name)
+        if code != CODE_SUCCESS:
+            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+        return self.returned_data_creator('fin')
 
     """
     Checkpoint and send checkpoint data to dst host

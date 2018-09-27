@@ -101,7 +101,7 @@ def cli_soc():
     # Init buf
     print("================= DST-1====================")
     i_message_type = ClientMessageCode.DM_INIT_BUF.value
-    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf')
+    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
     dst_app_id = cli.read()['payload']
     print(dst_app_id)
 
@@ -124,7 +124,7 @@ def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
     i = DockerLayer()
-    i.execute_remapping('busybox')
+    i.execute_remapping('tatsuki/serv_devel_env')
 
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst

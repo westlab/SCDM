@@ -28,27 +28,27 @@ class ClientSignalCode(Enum):
 
 class SmartCommunityRouterAPI:
     def __init__(self):
-        self._soc = RemoteComClient()
+        self._soc_cli = RemoteComClient()
 
     def connect(self):
-        self._soc.connect()
+        self._soc_cli.connect()
 
     def get_app_info_dict(self, app_id):
         i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
-        ret = self._soc.send_formalized_message(app_id, i_message_type)
-        message = self._soc.read()
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
+        message = self._soc_cli.read()
         info = { 
                 "buf_loc": message['payload'].split('|')[:1][0],
                 "sig_loc": message['payload'].split('|')[1:2][0],
                 "rules": message['payload'].split('|')[2:]
                 }
         return info
-    
+
     def prepare_app_launch(self, buf, sig, rules):
         app_id = 0
         i_message_type = ClientMessageCode.DM_INIT_BUF.value
-        ret = self._soc.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf')
-        dst_app_id = self._soc.read()['payload']
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buffer0')
+        dst_app_id = self._soc_cli.read()['payload']
 
         #i_message_type = ClientMessageCode.BULK_RULE_INS.value
         #ret = self._soc.send_formalized_message(dst_app_id, i_message_type, '|'.join(rules))
@@ -56,10 +56,10 @@ class SmartCommunityRouterAPI:
 
         return int(dst_app_id)
 
-    def prepare_checkpoint(self, app_id):
+    def prepare_for_checkpoint(self, app_id):
         i_message_type = ClientMessageCode.SERV_CHG_SIG.value
-        ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.REQUESTED.value)
-        message = cli.read()
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.REQUESTED.value)
+        message = self._soc_cli.read()
         return message
 
 class RemoteComClient:
