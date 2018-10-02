@@ -134,7 +134,6 @@ class IOStat(object):
         #    close_fds=close_fds)
         return subprocess.run(
             args,
-            bufsize=1,
             shell=True,
             stdout=subprocess.PIPE,
             close_fds=close_fds)
@@ -161,15 +160,11 @@ class IOStat(object):
             options.remove('N')
             extdoptions.remove('N')
         dstats = self._run(options)
-        extdstats = self._run(extdoptions)
+        #extdstats = self._run(extdoptions)
         #dsd = self._get_childs_data(dstats)
         #edd = self._get_childs_data(extdstats)
         ds = self.parse_diskstats(dstats.stdout)
-        eds = self.parse_diskstats(extdstats.stdout)
-
-        for dk, dv in ds.items():
-            if dk in eds:
-                ds[dk].update(eds[dk])
+        #eds = self.parse_diskstats(extdstats.stdout)
 
         return ds
 
