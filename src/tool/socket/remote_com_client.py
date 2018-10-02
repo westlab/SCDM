@@ -21,10 +21,9 @@ class ClientMessageCode(Enum):
 
 class ClientSignalCode(Enum):
     NONE=0
-    REQUESTED=1
-    DONE=2
-    MIGRATING=3
-    MIGRATED=4
+    SRC_MIG_REQUESTED=1
+    SRC_BUF_EMPTY=2
+    DST_BUF_INIT_COMP=3
 
 class SmartCommunityRouterAPI:
     def __init__(self):
