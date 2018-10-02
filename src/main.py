@@ -67,8 +67,8 @@ def rpc_client():
     worker = MigrationWorker(cli=docker_api,
                              i_name=args.image_name, version=version, c_name=args.container_name,
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
-    #data = worker.run()
-    data = worker.run_involving_commit()
+    data = worker.run()
+    #data = worker.run_involving_commit()
 
 def codegen():
     from service import codegen
@@ -109,31 +109,23 @@ def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
     i = DockerLayer()
-    i.execute_remapping('tatsuki/unix-socket')
+    i.execute_remapping('busybox')
 
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
     from tool.common.resource_recorder import ResourceRecorder
     from tool.common.disk_recorder import DiskRecorder
     from tool.docker.docker_container_extraction import DockerContainerExtraction, DockerVolume
+    from tool.common.recorder.collectd_iostat_python.collectd_iostat_python import IOStat
     from tool.docker.docker_layer import DockerLayer
     import docker
 
-    #r = ResourceRecorder()
-    #r.insert_init_cond()
-    #r.track_on_subp()
-    #r.terminate_subp()
-    #r.write()
-    i_name = 'elasticsearch:latest'
-    c_name = 'es1'
-    c_id='7b288f57cfce55e9cc8cde12df1e9555b9c80e90df7dc0ccbaf915c6947c1c12'
-    i = DockerLayer()
-    i_layer_ids = i.get_local_layer_ids(i_name)
-    c_layer_ids = i.get_container_layer_ids(c_name)
-    extractor = DockerContainerExtraction(c_name, c_id, i_layer_ids, c_layer_ids)
-    recorder = DiskRecorder(c_name)
-    recorder.track_all(extractor)
-    recorder.write()
+    r_recorder = ResourceRecorder('{0}_{1}'.format('hoge', 'hogehoge'))
+    r_recorder.insert_init_cond()
+    r_recorder.track_on_subp()
+    sleep(5)
+    r_recorder.terminate_subp()
+    r_recorder.write()
 
 if __name__ == "__main__":
     if args.program == 'rest':
