@@ -100,17 +100,17 @@ def cli_soc():
 
     # Init buf
     print("================= DST-1====================")
-    #i_message_type = ClientMessageCode.DM_INIT_BUF.value
-    #ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
-    #dst_app_id = cli.read()['payload']
-    #print(dst_app_id)
+    i_message_type = ClientMessageCode.DM_INIT_BUF.value
+    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
+    dst_app_id = cli.read()['payload']
+    print(dst_app_id)
 
     ## =============== SRC-2 =================
     # Add all rules  skip rule because of testing same host
     print("================= SRC-2====================")
-    i_message_type = ClientMessageCode.SERV_CHG_SIG.value
-    ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
-    message = cli.read()
+    #i_message_type = ClientMessageCode.SERV_CHG_SIG.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
+    #message = cli.read()
 
     # delete all rules
     #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
