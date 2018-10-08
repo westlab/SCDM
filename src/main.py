@@ -10,7 +10,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('rest', 'rpc', 'codegen', 'client', 'cli_soc', 'sync', 'debug'),
+                    choices=('rest', 'rpc', 'codegen', 'run_prop', 'run_con', 'cli_soc', 'sync', 'debug'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
