@@ -53,9 +53,9 @@ class MigrationWorker:
     def run(self):
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        d_recorder = DiskRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
-        t_recorder = TimeRecorder('{0}_{1}'.format(self._c_name, self._bandwidth) )
-        r_recorder = ResourceRecorder('{0}_{1}'.format(self._c_name, self._bandwidth))
+        d_recorder = DiskRecorder('prop_{0}_{1}'.format(self._bandwidth, self._c_name))
+        t_recorder = TimeRecorder('prop_{0}_{1}'.format(self._bandwidth, self._c_name) )
+        r_recorder = ResourceRecorder('prop_{0}_{1}'.format(self._bandwidth, self._c_name))
 
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
@@ -140,9 +140,9 @@ class MigrationWorker:
             volumes.append(vo_hash)
             c_volume_options.append(c_vo_hash)
 
-        d_recorder = DiskRecorder('{0}_{1}_con'.format(self._c_name, self._bandwidth))
-        t_recorder = TimeRecorder('{0}_{1}_con'.format(self._c_name, self._bandwidth), migration_type='conservative')
-        r_recorder = ResourceRecorder('{0}_{1}_con'.format(self._c_name, self._bandwidth))
+        d_recorder = DiskRecorder('con_{0}_{1}'.format(self._bandwidth, self._c_name))
+        t_recorder = TimeRecorder('con_{0}_{1}'.format(self._bandwidth, self._c_name), migration_type='conservative')
+        r_recorder = ResourceRecorder('con_{0}_{1}'.format(self._bandwidth, self._c_name))
 
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
