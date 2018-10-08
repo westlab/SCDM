@@ -48,7 +48,7 @@ def rpc_server():
     logger.info("RPC server start")
     grpc_server.serve(addr, port)
 
-def rpc_client():
+def run_prop():
     from tool.migration_worker import MigrationWorker
     from tool.docker.docker_api import DockerApi
 
@@ -68,7 +68,27 @@ def rpc_client():
                              i_name=args.image_name, version=version, c_name=args.container_name,
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
     data = worker.run()
-    #data = worker.run_involving_commit()
+
+def run_con():
+    from tool.migration_worker import MigrationWorker
+    from tool.docker.docker_api import DockerApi
+
+    docker_api = DockerApi()
+    docker_api.login()
+
+    checkpoint_option_keys = ['ports']
+    migration_option_keys = ['host', 'dst_addr']
+    version = 'latest'
+
+    ports =[]
+    dst_addr = '192.168.1.2'
+    host = 'miura'
+    checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
+    migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
+    worker = MigrationWorker(cli=docker_api,
+                             i_name=args.image_name, version=version, c_name=args.container_name,
+                             m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
+    data = worker.run_involving_commit()
 
 def codegen():
     from service import codegen
@@ -109,7 +129,7 @@ def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
     i = DockerLayer()
-    i.execute_remapping('busybox')
+    i.execute_remapping(args.image_name)
 
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
@@ -134,12 +154,14 @@ if __name__ == "__main__":
         rpc_server()
     if args.program == 'codegen':
         codegen()
-    if args.program == 'client':
-        rpc_client()
     if args.program == 'cli_soc':
         cli_soc()
     if args.program == 'sync':
         sync()
+    if args.program == 'run_prop':
+        run_prop()
+    if args.program == 'run_con':
+        run_con()
     if args.program == 'debug':
         debug()
 
