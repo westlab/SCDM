@@ -126,9 +126,9 @@ class MigrationWorker:
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         tag = self.tag_creator()
 
-        src_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['private'],i_name=self._i_name)
-        dst_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['local'],i_name=self._i_name)
-        dir_name = '{0}_{1}'.format(self._i_name,tag)
+        src_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['private'],i_name=self._i_name.replace('/','_')) # avoid erro bacase of str '/'
+        dst_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['local'],i_name=self._i_name.replace('/','_'))
+        dir_name = '{0}_{1}'.format(self._i_name.replace('/','_'),tag)
         dst_default_path = '{0}/{1}'.format(self._d_config['destination']['default_dir'], dir_name)
 
         volumes=[]
@@ -167,6 +167,7 @@ class MigrationWorker:
             return self.returned_data_creator('commit')
 
         # ===============PULL=================
+        self._logger.info("Pull an image on dst")
         t_recorder.track(ConservativeMigrationConst.PULL)
         pulled_image = rpc_client.pull(i_name=dst_repo, version=tag)
         t_recorder.track(ConservativeMigrationConst.PULL)
@@ -231,7 +232,7 @@ class MigrationWorker:
     """
     def send_checkpoint(self, src_repo, tag):
         src_c = self._d_cli.container_presence(self._c_name)
-        dst_dir_name = '{0}_{1}'.format(self._i_name,tag)
+        dst_dir_name = '{0}_{1}'.format(self._i_name.replace("/","_"),tag)
         cp_path = '{0}/{1}/'.format(self._d_config['checkpoint']['default_dir'], src_c.id)
         dst_path = '{0}/{1}/'.format(self._d_config['destination']['default_dir'], dst_dir_name)
         is_success = Rsync.call(cp_path, dst_path, 'miura', src_addr=None, dst_addr=self._m_opt['dst_addr'])
