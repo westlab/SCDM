@@ -3,6 +3,7 @@ import json
 import re
 import sys
 from pathlib import Path
+import pdb # for debug
 
 from tool.docker.docker_base_api import DockerBaseApi
 from settings.docker import OVERLAYER2_DIR_PATH, LAYERDB_DIR_PATH, IMAGEDB_DIR_PATH, CONTAINER_CONF_PATH
@@ -43,6 +44,7 @@ class DockerLayer(DockerBaseApi):
                 if not tmp_local_cache_id_path.exists():
                     local_cache_id_path = o_layer_id/"cache-id"
                     relations[local_cache_id_path.read_text().strip()] = o_layer_id.name.strip()
+
         except Exception as e:
             print("get_layer_id_relations args:", e.args)
         return relations
@@ -84,7 +86,10 @@ class DockerLayer(DockerBaseApi):
     def remap_local_layer_ids(self, lo_layer_ids, relations):
         try:
             for lo_layer_id in lo_layer_ids:
-                o_layer_id = relations[lo_layer_id]
+                if (lo_layer_id in relations):
+                    o_layer_id = relations[lo_layer_id]
+                else:
+                    continue
                 alternative_file_path = self.alternaitve_cache_id_file_path(o_layer_id)
 
                 if not alternative_file_path.exists():
@@ -135,6 +140,7 @@ class DockerLayer(DockerBaseApi):
         relations = self.get_layer_id_relations()
         local_ids = self.get_local_layer_ids(image_name)
         self.remap_local_layer_ids(local_ids, relations)
+        DockerBaseApi.reload_daemon()
 
     """
     Execute remapinng tasks all images in host

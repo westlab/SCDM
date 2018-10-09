@@ -2,6 +2,7 @@ from timeit import default_timer as timer
 from datetime import datetime
 from pathlib import Path
 from time import sleep
+from tool.common.recorder.collectd_iostat_python.collectd_iostat_python import IOStat
 import psutil
 import csv
 import pandas as pd
@@ -22,6 +23,8 @@ class ResourceRecorder:
     MEM_DIFF=2
     MEM_USED_RATE=3
     CPU_USED_RATE=4
+    IO_READ=5
+    IO_WRITE=6
 
     COLS = [
         'init_mem_used',            #0
@@ -29,6 +32,8 @@ class ResourceRecorder:
         'mem_diff',                 #2
         'mem_usage_rate',           #3
         'cpu_usage_rate',           #4
+        'kB_read/s',                #5
+        'kB_wrtn/s',                #6
     ]
 
     def __init__(self, name):
@@ -37,6 +42,7 @@ class ResourceRecorder:
         self._cols = self.COLS
         self._continued = True
         self._mem = psutil.virtual_memory()
+        self._io = IOStat()
         self._track_resources = dict((i, []) for i in range(len(self._cols)))
         self._executor = None
 
@@ -53,10 +59,13 @@ class ResourceRecorder:
 
     def insert_init_cond(self):
         mem_used = psutil.virtual_memory().used
+        io = self._io.get_diskstats()
         self._track_resources[self.INIT_MEM_USED].append(mem_used)
         self._track_resources[self.MEM_USED].append(mem_used)
         self._track_resources[self.MEM_USED_RATE].append(psutil.virtual_memory().percent)
         self._track_resources[self.CPU_USED_RATE].append(psutil.cpu_percent())
+        self._track_resources[self.IO_READ].append(io[b'sda'][b'kB_read/s'])
+        self._track_resources[self.IO_WRITE].append(io[b'sda'][b'kB_wrtn/s'])
 
     def track_on_subp(self):
         self._executor = ThreadPoolExecutor(max_workers=2)
@@ -73,6 +82,7 @@ class ResourceRecorder:
             self.track_mem_used()
             self.track_mem_usage_rate()
             self.track_cpu_usage_rate()
+            self.track_disk_io()
             sleep(0.1)
 
     def track_mem_used(self):
@@ -83,6 +93,11 @@ class ResourceRecorder:
 
     def track_cpu_usage_rate(self):
         self._track_resources[self.CPU_USED_RATE].append(psutil.cpu_percent())
+
+    def track_disk_io(self):
+        io = self._io.get_diskstats()
+        self._track_resources[self.IO_READ].append(io[b'sda'][b'kB_read/s'])
+        self._track_resources[self.IO_WRITE].append(io[b'sda'][b'kB_wrtn/s'])
 
     def write(self):
         print('write')
