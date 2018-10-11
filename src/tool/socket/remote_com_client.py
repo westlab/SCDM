@@ -49,15 +49,15 @@ class SmartCommunityRouterAPI:
         ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buffer0')
         dst_app_id = self._soc_cli.read()['payload']
 
-        #i_message_type = ClientMessageCode.BULK_RULE_INS.value
-        #ret = self._soc.send_formalized_message(dst_app_id, i_message_type, '|'.join(rules))
-        #message =i self._soc.read()
+        i_message_type = ClientMessageCode.BULK_RULE_INS.value
+        ret = self._soc_cli.send_formalized_message(dst_app_id, i_message_type, '|'.join(rules))
+        message =self._soc_cli.read()
 
         return int(dst_app_id)
 
     def prepare_for_checkpoint(self, app_id):
         i_message_type = ClientMessageCode.SERV_CHG_SIG.value
-        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.REQUESTED.value)
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
         message = self._soc_cli.read()
         return message
 

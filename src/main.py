@@ -129,9 +129,9 @@ def cli_soc():
     ## =============== SRC-2 =================
     # Add all rules  skip rule because of testing same host
     print("================= SRC-2====================")
-    #i_message_type = ClientMessageCode.SERV_CHG_SIG.value
-    #ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
-    #message = cli.read()
+    i_message_type = ClientMessageCode.SERV_CHG_SIG.value
+    ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
+    message = cli.read()
 
     # delete all rules
     #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
@@ -144,11 +144,7 @@ def sync():
     from tool.docker.docker_layer import DockerLayer
     from tool.docker.docker_container_extraction import DockerContainerExtraction
     i = DockerLayer()
-<<<<<<< HEAD
-    i.execute_remapping('tatsuki/serv_devel_env')
-=======
     i.execute_remapping(args.image_name)
->>>>>>> dd13bf1b621955c24a5be66298d5388e3137c268
 
 def debug():
     from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
