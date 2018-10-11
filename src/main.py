@@ -88,7 +88,9 @@ def run_con():
     worker = MigrationWorker(cli=docker_api,
                              i_name=args.image_name, version=version, c_name=args.container_name,
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
-    data = worker.run_involving_commit()
+    #data = worker.run()
+    #data = worker.run_involving_commit()
+    data = worker.run_with_scr()
 
 def codegen():
     from service import codegen
@@ -96,32 +98,45 @@ def codegen():
 
 def cli_soc():
     from tool.socket.remote_com_client import RemoteComClient
-    from tool.socket.remote_com_client import ClientMessageCode
+    from tool.socket.remote_com_client import ClientMessageCode, ClientSignalCode
 
     cli = RemoteComClient()
     cli.connect()
 
     app_id = 0;
+
+    ## =============== SRC-1 =================
+    print("================= SRC-1====================")
     i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
     ret = cli.send_formalized_message(app_id, i_message_type)
     message = cli.read()
     buf_arr = message['payload'].split('|')[:1]
     rule_arr = message['payload'].split('|')[2:]
 
-    ## delete all rules
-    #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
-    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
-    #message = cli.read()
-
-    ### Add all rules 
+    ## =============== DST-1 =================
+    # Add all rules  skip rule because of testing same host
     #i_message_type = ClientMessageCode.BULK_RULE_INS.value
     #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
     #message = cli.read()
 
     # Init buf
+    print("================= DST-1====================")
     i_message_type = ClientMessageCode.DM_INIT_BUF.value
-    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf')
+    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
+    dst_app_id = cli.read()['payload']
+    print(dst_app_id)
+
+    ## =============== SRC-2 =================
+    # Add all rules  skip rule because of testing same host
+    print("================= SRC-2====================")
+    i_message_type = ClientMessageCode.SERV_CHG_SIG.value
+    ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
     message = cli.read()
+
+    # delete all rules
+    #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    #message = cli.read()
 
     cli.close()
 

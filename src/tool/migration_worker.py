@@ -13,6 +13,7 @@ from tool.docker.docker_layer import DockerLayer
 from tool.docker.docker_container_extraction import DockerContainerExtraction
 from tool.docker.docker_container_extraction import DockerVolume
 from tool.gRPC.grpc_client import RpcClient
+from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient
 
 # For evaluation
 from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst, ConservativeMigrationConst
@@ -28,6 +29,7 @@ class MigrationWorker:
         config.read(DOCKER_BASIC_SETTINGS_PATH)
         i_layer_manager = DockerLayer()
 
+        # Migration attributes
         self._logger = LoggerFactory.create_logger(self)
         self._d_cli = cli
         self._c_id = cli.container_presence(c_name).id
@@ -36,6 +38,7 @@ class MigrationWorker:
         self._i_name = i_name
         self._version = version
         self._c_name = c_name
+
         self._m_opt = m_opt
         self._c_opt = c_opt
         self._bandwidth = bandwidth
@@ -221,6 +224,53 @@ class MigrationWorker:
         t_recorder.write()
         r_recorder.write()
 
+        return self.returned_data_creator('fin')
+
+    def run_with_scr(self):
+        self._logger.info("run: Init RPC client")
+        rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
+        scr_cli = SmartCommunityRouterAPI()
+        scr_cli.connect()
+
+        #### src app info
+        app_id = 0
+        app_info_dict = scr_cli.get_app_info_dict(app_id)
+        #### create buffer
+        dst_app_id = rpc_client.prepare_app_launch(app_info_dict['buf_loc'],app_info_dict['sig_loc'],app_info_dict['rules'])
+
+        ####  request ready for checkpoint
+        scr_cli.prepare_for_checkpoint(app_id)
+
+        # Inspect Images
+        code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
+
+        # Checkpoint
+        has_checkpointed = self._d_cli.checkpoint(self._c_name)
+
+        if has_checkpointed is not True:
+            return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        has_create_tmp_dir = rpc_client.create_tmp_dir(self._c_id)
+        if has_create_tmp_dir is not CODE_SUCCESS:
+            #TODO: fix
+            return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
+        # Send artifacts
+        has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        if has_sent is not True:
+            return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
+        code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
+                                                       self._d_c_extractor.c_id,
+                                                       self._d_c_extractor.i_layer_ids,
+                                                       self._d_c_extractor.c_layer_ids,
+                                                       volumes=volumes)
+        # Reload daemon
+        code = rpc_client.reload_daemon()
+
+        # Restore
+        code = rpc_client.restore(self._c_name)
+        if code != CODE_SUCCESS:
+            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
         return self.returned_data_creator('fin')
 
     """

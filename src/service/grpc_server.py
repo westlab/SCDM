@@ -7,6 +7,7 @@ import pdb
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
 from tool.docker.docker_api import DockerApi
 from tool.docker.docker_container_extraction import DockerContainerExtraction
+from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient
 
 from tool.common.logging.logger_factory import LoggerFactory
 
@@ -38,9 +39,11 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def __init__(self):
         LoggerFactory.init()
-        self._cli = DockerApi()
         self._logger = LoggerFactory.create_logger(self)
+        self._cli = DockerApi()
         self._cli.login()
+        self._scr_cli = SmartCommunityRouterAPI()
+        self._scr_cli.connect()
 
     """
     Notify whether Dockerd is running or not
@@ -194,6 +197,11 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
             self._logger.info("Cannot get the specified image")
             code =  os.errno.EHOSTDOWN
             return docker_migration_pb2.Status(code=code)
+
+    def PrepareAppLaunch(self, req, context):
+        self._logger.info("Prepare App Launch")
+        dst_app_id = self._scr_cli.prepare_app_launch(req.buf_loc, req.sig_loc, req.rules)
+        return docker_migration_pb2.Status(code=dst_app_id)
 
 """
 Start gRPC server based on given addr and port number.

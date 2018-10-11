@@ -17,6 +17,49 @@ class ClientMessageCode(Enum):
     SERV_CHG_SIG = 8
     DM_ASK_APP_INFO = 9
     DM_INIT_BUF = 10
+    CLI_REINIT=14
+
+class ClientSignalCode(Enum):
+    NONE=0
+    SRC_MIG_REQUESTED=1
+    SRC_BUF_EMPTY=2
+    DST_BUF_INIT_COMP=3
+
+class SmartCommunityRouterAPI:
+    def __init__(self):
+        self._soc_cli = RemoteComClient()
+
+    def connect(self):
+        self._soc_cli.connect()
+
+    def get_app_info_dict(self, app_id):
+        i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
+        message = self._soc_cli.read()
+        info = { 
+                "buf_loc": message['payload'].split('|')[:1][0],
+                "sig_loc": message['payload'].split('|')[1:2][0],
+                "rules": message['payload'].split('|')[2:]
+                }
+        return info
+
+    def prepare_app_launch(self, buf, sig, rules):
+        app_id = 0
+        i_message_type = ClientMessageCode.DM_INIT_BUF.value
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buffer0')
+        dst_app_id = self._soc_cli.read()['payload']
+
+        i_message_type = ClientMessageCode.BULK_RULE_INS.value
+        ret = self._soc_cli.send_formalized_message(dst_app_id, i_message_type, '|'.join(rules))
+        message =self._soc_cli.read()
+
+        return int(dst_app_id)
+
+    def prepare_for_checkpoint(self, app_id):
+        i_message_type = ClientMessageCode.SERV_CHG_SIG.value
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
+        message = self._soc_cli.read()
+        return message
 
 class RemoteComClient:
     BUFFER_SIZE = 1024
@@ -43,7 +86,6 @@ class RemoteComClient:
         message = self.formalize_message(app_id, message_type, payload)
         print("message: {0}".format(message))
         self.socket.send(message.encode())
-
 
     """
     Read socket data, and return the returned data
@@ -89,5 +131,4 @@ class RemoteComClient:
         arr = str_message.split(",")
         formatted_message = { key_arr[i]: arr[i] for i in range(len(key_arr)) }
         return formatted_message
-
 
