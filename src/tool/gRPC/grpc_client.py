@@ -61,3 +61,7 @@ class RpcClient:
         dst_app_id = self._stub.PrepareAppLaunch(docker_migration_pb2.AppInfo(buf_loc=buf_loc, sig_loc=sig_loc, rules=rules))
         return dst_app_id
 
+    def update_buf_read_offset(self, app_id, s_packet_ids):
+        status = self._stub.UpdateBufReadOffset(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=s_packet_ids))
+        return status.code
+

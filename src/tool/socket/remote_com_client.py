@@ -1,5 +1,6 @@
 import socket
 from enum import Enum
+import pdb
 
 """
 Message Type for sending a socket server
@@ -15,8 +16,9 @@ class ClientMessageCode(Enum):
     MSG_WAIT = 6
     MSG_OTHER = 7
     SERV_CHG_SIG = 8
-    DM_ASK_APP_INFO = 9
-    DM_INIT_BUF = 10
+    SERV_CHG_APP_BUF_R_OFFSET = 9
+    DM_ASK_APP_INFO = 10
+    DM_INIT_BUF = 11
     CLI_REINIT=14
 
 class ClientSignalCode(Enum):
@@ -61,6 +63,13 @@ class SmartCommunityRouterAPI:
         message = self._soc_cli.read()
         return message
 
+    def update_buf_read_offset(self, app_id, s_packet_ids):
+        i_message_type = ClientMessageCode.SERV_CHG_APP_BUF_R_OFFSET.value
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, '|'.join(s_packet_ids))
+        pdb.set_trace()
+        message = self._soc_cli.read()
+        return True
+
 class RemoteComClient:
     BUFFER_SIZE = 1024
 
@@ -101,7 +110,6 @@ class RemoteComClient:
         print(data)
         print("read")
         return message
-
     """
     Formalize a message passing to vnf_platform
 
@@ -131,4 +139,5 @@ class RemoteComClient:
         arr = str_message.split(",")
         formatted_message = { key_arr[i]: arr[i] for i in range(len(key_arr)) }
         return formatted_message
+
 
