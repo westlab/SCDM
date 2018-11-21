@@ -2,7 +2,6 @@ from concurrent import futures
 import grpc
 import time
 import os
-import pdb
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
 from tool.docker.docker_api import DockerApi
@@ -202,6 +201,15 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         dst_app_id = self._scr_cli.prepare_app_launch(req.buf_loc, req.sig_loc, req.rules)
         return docker_migration_pb2.Status(code=dst_app_id)
 
+    """
+    Update Application buffer read offset
+    @params PacketIds ( Array packet_ids)
+    @return Status(Integer code)
+    """
+    def UpdateBufReadOffset(self, req, context):
+        self._logger.info("Update buffer read offset")
+        code = self._scr_cli.update_buf_read_offset(req.app_id, req.s_packet_ids)
+        return docker_migration_pb2.Status(code=code)
 """
 Start gRPC server based on given addr and port number.
 

@@ -1,6 +1,7 @@
 import argparse
 import configparser
 from time import sleep
+import pdb
 
 from tool.common.logging.logger_factory import LoggerFactory
 
@@ -134,17 +135,17 @@ def cli_soc():
     rule_arr = message['payload'].split('|')[2:]
 
     ## =============== DST-1 =================
-    # Add all rules  skip rule because of testing same host
-    #i_message_type = ClientMessageCode.BULK_RULE_INS.value
-    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
-    #message = cli.read()
-
     # Init buf
     print("================= DST-1====================")
     i_message_type = ClientMessageCode.DM_INIT_BUF.value
     ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
     dst_app_id = cli.read()['payload']
     print(dst_app_id)
+
+    # Add all rules  skip rule because of testing same host
+    i_message_type = ClientMessageCode.BULK_RULE_INS.value
+    ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    message = cli.read()
 
     ## =============== SRC-2 =================
     # Add all rules  skip rule because of testing same host
@@ -154,9 +155,9 @@ def cli_soc():
     message = cli.read()
 
     # delete all rules
-    #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
-    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
-    #message = cli.read()
+    i_message_type = ClientMessageCode.BULK_RULE_DEL.value
+    ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    message = cli.read()
 
     cli.close()
 
@@ -165,79 +166,24 @@ def sync():
     from tool.docker.docker_container_extraction import DockerContainerExtraction
     i = DockerLayer()
     i.execute_remapping(args.image_name)
-
-def debug():
-    from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
 
 def codegen():
     from service import codegen
     codegen.run()
 
-def cli_soc():
-    from tool.socket.remote_com_client import RemoteComClient
-    from tool.socket.remote_com_client import ClientMessageCode, ClientSignalCode
-
-    cli = RemoteComClient()
-    cli.connect()
-
-    app_id = 0;
-
-    ## =============== SRC-1 =================
-    print("================= SRC-1====================")
-    i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
-    ret = cli.send_formalized_message(app_id, i_message_type)
-    message = cli.read()
-    buf_arr = message['payload'].split('|')[:1]
-    rule_arr = message['payload'].split('|')[2:]
-
-    ## =============== DST-1 =================
-    # Add all rules  skip rule because of testing same host
-    #i_message_type = ClientMessageCode.BULK_RULE_INS.value
-    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
-    #message = cli.read()
-
-    # Init buf
-    print("================= DST-1====================")
-    i_message_type = ClientMessageCode.DM_INIT_BUF.value
-    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
-    dst_app_id = cli.read()['payload']
-    print(dst_app_id)
-
-    ## =============== SRC-2 =================
-    # Add all rules  skip rule because of testing same host
-    print("================= SRC-2====================")
-    i_message_type = ClientMessageCode.SERV_CHG_SIG.value
-    ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
-    message = cli.read()
-
-    # delete all rules
-    #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
-    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
-    #message = cli.read()
-
-    cli.close()
-
-def sync():
-    from tool.docker.docker_layer import DockerLayer
-    from tool.docker.docker_container_extraction import DockerContainerExtraction
-    i = DockerLayer()
-    i.execute_remapping(args.image_name)
-
 def debug():
-    from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
-    from tool.common.resource_recorder import ResourceRecorder
-    from tool.common.disk_recorder import DiskRecorder
-    from tool.docker.docker_container_extraction import DockerContainerExtraction, DockerVolume
-    from tool.common.recorder.collectd_iostat_python.collectd_iostat_python import IOStat
-    from tool.docker.docker_layer import DockerLayer
-    import docker
+    from tool.redis.redis_client import RedisClient
+    from tool.socket.remote_com_client import RemoteComClient
+    from tool.gRPC.grpc_client import RpcClient
 
-    r_recorder = ResourceRecorder('{0}_{1}'.format('hoge', 'hogehoge'))
-    r_recorder.insert_init_cond()
-    r_recorder.track_on_subp()
-    sleep(5)
-    r_recorder.terminate_subp()
-    r_recorder.write()
+    app_id = 0
+
+    rpc_client = RpcClient()
+    redis = RedisClient()
+
+    last_packet_ids =  [ b_id.decode('utf-8') for b_id in redis.hvals(app_id)]
+    code = rpc_client.update_buf_read_offset(app_id, last_packet_ids)
+    print(redis.hvals(1))
 
 if __name__ == "__main__":
     if args.program == 'rest':

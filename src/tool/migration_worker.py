@@ -14,6 +14,7 @@ from tool.docker.docker_container_extraction import DockerContainerExtraction
 from tool.docker.docker_container_extraction import DockerVolume
 from tool.gRPC.grpc_client import RpcClient
 from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient
+from tool.redis.redis_client import RedisClient
 
 # For evaluation
 from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst, ConservativeMigrationConst
@@ -231,11 +232,13 @@ class MigrationWorker:
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         scr_cli = SmartCommunityRouterAPI()
+        redis_cli = RedisClient()
         scr_cli.connect()
 
         #### src app info
         app_id = 0
         app_info_dict = scr_cli.get_app_info_dict(app_id)
+
         #### create buffer
         dst_app_id = rpc_client.prepare_app_launch(app_info_dict['buf_loc'],app_info_dict['sig_loc'],app_info_dict['rules'])
 
@@ -247,7 +250,6 @@ class MigrationWorker:
 
         # Checkpoint
         has_checkpointed = self._d_cli.checkpoint(self._c_name)
-
         if has_checkpointed is not True:
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         has_create_tmp_dir = rpc_client.create_tmp_dir(self._c_id)
@@ -267,6 +269,10 @@ class MigrationWorker:
                                                        volumes=volumes)
         # Reload daemon
         code = rpc_client.reload_daemon()
+
+        # Update application buffer read offset
+        s_last_packet_ids =  [ b_id.decode('utf-8') for b_id in redis_cli.hvals(app_id)]
+        code = rpc_client.update_buf_read_offset(app_id, s_last_packet_ids)
 
         # Restore
         code = rpc_client.restore(self._c_name)
