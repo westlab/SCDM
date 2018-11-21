@@ -169,6 +169,7 @@ class MigrationWorker:
         else:
             return self.returned_data_creator('commit')
 
+        print("pull")
         # ===============PULL=================
         self._logger.info("Pull an image on dst")
         t_recorder.track(ConservativeMigrationConst.PULL)

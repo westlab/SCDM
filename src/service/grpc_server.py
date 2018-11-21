@@ -91,7 +91,6 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         second_code = CODE_SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=second_code)
 
-        #TODO: 存在している場合には、削除/オプションを付け加えて再生成する必要あり
         self._logger.info("Create the container from the image with given options")
         c = self._cli.create(req.image_name, options, req.version)
         if c is not None:

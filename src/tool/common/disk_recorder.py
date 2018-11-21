@@ -25,7 +25,7 @@ class DiskRecorder:
         'total'                #6
     ]
 
-    DEFAULT_PATH = "/home/miura/programming/SCDM/logs/recorders"
+    DEFAULT_PATH = "/home/miura/p/SCDM/logs/recorders"
 
     def __init__(self, name):
         base_file_name = '{name}_disk_{time}.csv'.format(name=name, time=datetime.now().strftime('%Y%m%d_%H%M%S'))

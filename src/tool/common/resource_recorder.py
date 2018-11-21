@@ -16,7 +16,7 @@ ResourceRecorder is used for tracking cpu and mem usage during migration
 """
 
 class ResourceRecorder:
-    DEFAULT_PATH = "/home/miura/programming/SCDM/logs/recorders"
+    DEFAULT_PATH = "/home/miura/p/SCDM/logs/recorders"
 
     INIT_MEM_USED=0
     MEM_USED=1

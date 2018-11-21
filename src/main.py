@@ -10,7 +10,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('rest', 'rpc', 'codegen', 'run_prop', 'run_con', 'cli_soc', 'sync', 'debug'),
+                    choices=('rest', 'rpc', 'codegen', 'run_prop', 'run_con', 'run_scr', 'cli_soc', 'sync', 'debug'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
@@ -53,14 +53,14 @@ def run_prop():
     from tool.docker.docker_api import DockerApi
 
     docker_api = DockerApi()
-    docker_api.login()
+    #docker_api.login()
 
     checkpoint_option_keys = ['ports']
     migration_option_keys = ['host', 'dst_addr']
     version = 'latest'
 
     ports =[]
-    dst_addr = '192.168.1.2'
+    dst_addr = '192.168.11.2'
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
@@ -81,16 +81,93 @@ def run_con():
     version = 'latest'
 
     ports =[]
-    dst_addr = '192.168.1.2'
+    dst_addr = '192.168.11.2'
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
     worker = MigrationWorker(cli=docker_api,
                              i_name=args.image_name, version=version, c_name=args.container_name,
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
-    #data = worker.run()
-    #data = worker.run_involving_commit()
+    data = worker.run_involving_commit()
+
+
+def run_with_scr():
+    from tool.migration_worker import MigrationWorker
+    from tool.docker.docker_api import DockerApi
+
+    docker_api = DockerApi()
+    docker_api.login()
+
+    checkpoint_option_keys = ['ports']
+    migration_option_keys = ['host', 'dst_addr']
+    version = 'latest'
+
+    ports =[]
+    dst_addr = '10.24.128.124' # miura-router2
+    host = 'miura'
+    checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
+    migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
+    worker = MigrationWorker(cli=docker_api,
+                             i_name=args.image_name, version=version, c_name=args.container_name,
+                             m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
     data = worker.run_with_scr()
+
+def codegen():
+    from service import codegen
+    codegen.run()
+
+def cli_soc():
+    from tool.socket.remote_com_client import RemoteComClient
+    from tool.socket.remote_com_client import ClientMessageCode, ClientSignalCode
+
+    cli = RemoteComClient()
+    cli.connect()
+
+    app_id = 0;
+
+    ## =============== SRC-1 =================
+    print("================= SRC-1====================")
+    i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
+    ret = cli.send_formalized_message(app_id, i_message_type)
+    message = cli.read()
+    buf_arr = message['payload'].split('|')[:1]
+    rule_arr = message['payload'].split('|')[2:]
+
+    ## =============== DST-1 =================
+    # Add all rules  skip rule because of testing same host
+    #i_message_type = ClientMessageCode.BULK_RULE_INS.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    #message = cli.read()
+
+    # Init buf
+    print("================= DST-1====================")
+    i_message_type = ClientMessageCode.DM_INIT_BUF.value
+    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
+    dst_app_id = cli.read()['payload']
+    print(dst_app_id)
+
+    ## =============== SRC-2 =================
+    # Add all rules  skip rule because of testing same host
+    print("================= SRC-2====================")
+    i_message_type = ClientMessageCode.SERV_CHG_SIG.value
+    ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
+    message = cli.read()
+
+    # delete all rules
+    #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    #message = cli.read()
+
+    cli.close()
+
+def sync():
+    from tool.docker.docker_layer import DockerLayer
+    from tool.docker.docker_container_extraction import DockerContainerExtraction
+    i = DockerLayer()
+    i.execute_remapping(args.image_name)
+
+def debug():
+    from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst
 
 def codegen():
     from service import codegen
@@ -177,6 +254,8 @@ if __name__ == "__main__":
         run_prop()
     if args.program == 'run_con':
         run_con()
+    if args.program == 'run_scr':
+        run_with_scr()
     if args.program == 'debug':
         debug()
 

@@ -28,7 +28,7 @@ class ConservativeMigrationConst:
     RESTORE=8
 
 class TimeRecorder:
-    DEFAULT_PATH = "/home/miura/programming/SCDM/logs/recorders"
+    DEFAULT_PATH = "/home/miura/p/SCDM/logs/recorders"
     # Those columns accords with system flow of a migration worker
     DEFAULT_COLS = [
         "migration_time",                   #0
@@ -59,7 +59,7 @@ class TimeRecorder:
         self._track_time = dict((i, []) for i in range(len(self._cols)))
 
     def default_path(self):
-        return Path('/home/miura/programming/SCDM/logs/recorders')
+        return Path('/home/miura/p/SCDM/logs/recorders')
 
     """
     Track time
