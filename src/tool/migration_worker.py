@@ -231,8 +231,8 @@ class MigrationWorker:
     def run_with_scr(self):
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        scr_cli = SmartCommunityRouterAPI()
         redis_cli = RedisClient()
+        scr_cli = SmartCommunityRouterAPI()
         scr_cli.connect()
 
         #### src app info

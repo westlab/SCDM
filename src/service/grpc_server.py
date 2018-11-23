@@ -34,13 +34,11 @@ def dict_convetor(options):
 
 class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
-    Provides methods that implement functionality of docker migration server.
-    """
-    def __init__(self):
+    Provides methods that implement functionality of docker migration server.  """
+    def __init__(self, docker_api):
         LoggerFactory.init()
         self._logger = LoggerFactory.create_logger(self)
-        self._cli = DockerApi()
-        self._cli.login()
+        self._cli = docker_api
         self._scr_cli = SmartCommunityRouterAPI()
         self._scr_cli.connect()
 
@@ -143,6 +141,8 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         code = CODE_SUCCESS if d_extractor.allocate_container_artifacts() is True else CODE_NO_IMAGE
         return docker_migration_pb2.Status(code=code)
 
+
+
     """
     Create temporary directory for storing container runnning artifacts 
     @params Signal(String name)
@@ -227,9 +227,9 @@ Start gRPC server based on given addr and port number.
 @params String addr
 @params Integer port
 """
-def serve(addr, port):
+def serve(addr, port, docker_api):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
-    docker_migration_pb2_grpc.add_DockerMigratorServicer_to_server(DockerMigrator(), server)
+    docker_migration_pb2_grpc.add_DockerMigratorServicer_to_server(DockerMigrator(docker_api), server)
     addr_with_port = addr + ':' + str(port)
     server.add_insecure_port(addr_with_port)
     server.start()

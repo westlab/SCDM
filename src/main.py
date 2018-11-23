@@ -23,6 +23,33 @@ args = parser.parse_args()
 config = configparser.ConfigParser()
 config.read(args.conf)
 
+from tool.docker.docker_api import DockerApi
+
+docker_api = DockerApi()
+docker_api.login()
+
+def debug():
+    from tool.redis.redis_client import RedisClient
+    from tool.gRPC.grpc_client import RpcClient
+    from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
+
+    dst_addr = '10.24.128.194' # miura-router2 
+    local_rpc_cli = RpcClient()#dst_addr=dst_addr)
+    remote_rpc_cli = RpcClient(dst_addr=dst_addr)
+    redis = RedisClient()
+
+    app_id = 0
+    print("========get_buf_info==========")
+    dst_first_packet_id = remote_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+    print(dst_first_packet_id)
+    print("========packet_arrival==========")
+    print(local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))
+    print("========get last buffer info==========")
+    src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
+    print(src_last_packet_id)
+    print("========packet_arrival==========")
+    print(remote_rpc_cli.check_packet_arrival(app_id, src_last_packet_id))  #in this case packet_id
+
 def rest_server():
     from flask import Flask
     from service.api import v1
@@ -47,14 +74,10 @@ def rpc_server():
     port = config.getint('rpc_server', 'port')
 
     logger.info("RPC server start")
-    grpc_server.serve(addr, port)
+    grpc_server.serve(addr, port, docker_api)
 
 def run_prop():
     from tool.migration_worker import MigrationWorker
-    from tool.docker.docker_api import DockerApi
-
-    docker_api = DockerApi()
-    #docker_api.login()
 
     checkpoint_option_keys = ['ports']
     migration_option_keys = ['host', 'dst_addr']
@@ -65,17 +88,13 @@ def run_prop():
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
-    worker = MigrationWorker(cli=docker_api,
-                             i_name=args.image_name, version=version, c_name=args.container_name,
+    worker = MigrationWorker(cli=docker_api, i_name=args.image_name, version=version, c_name=args.container_name,
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
     data = worker.run()
 
 def run_con():
     from tool.migration_worker import MigrationWorker
     from tool.docker.docker_api import DockerApi
-
-    docker_api = DockerApi()
-    docker_api.login()
 
     checkpoint_option_keys = ['ports']
     migration_option_keys = ['host', 'dst_addr']
@@ -95,9 +114,6 @@ def run_con():
 def run_with_scr():
     from tool.migration_worker import MigrationWorker
     from tool.docker.docker_api import DockerApi
-
-    docker_api = DockerApi()
-    docker_api.login()
 
     checkpoint_option_keys = ['ports']
     migration_option_keys = ['host', 'dst_addr']
@@ -170,31 +186,6 @@ def sync():
 def codegen():
     from service import codegen
     codegen.run()
-
-def debug():
-    from tool.redis.redis_client import RedisClient
-    from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
-    from tool.gRPC.grpc_client import RpcClient
-
-    app_id = 0
-
-    dst_addr = '10.24.128.194' # miura-router1
-    rpc_client = RpcClient(dst_addr=dst_addr)
-    redis = RedisClient()
-    scr_cli = SmartCommunityRouterAPI()
-    scr_cli.connect()
-
-    print("========get_buf_info==========")
-    dst_first_packet_id = rpc_client.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
-    print(dst_first_packet_id)
-
-    print("========packet_arrival==========")
-    print(scr_cli.check_packet_arrival(app_id, dst_first_packet_id))
-
-    print("========get last buffer info==========")
-    src_last_packet_id = scr_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
-    print(src_last_packet_id)
-    print(rpc_client.check_packet_arrival(app_id, src_last_packet_id))  #in this case packet_id
 
 if __name__ == "__main__":
     if args.program == 'rest':
