@@ -173,17 +173,28 @@ def codegen():
 
 def debug():
     from tool.redis.redis_client import RedisClient
-    from tool.socket.remote_com_client import RemoteComClient
+    from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
     from tool.gRPC.grpc_client import RpcClient
 
     app_id = 0
 
-    rpc_client = RpcClient()
+    dst_addr = '10.24.128.194' # miura-router1
+    rpc_client = RpcClient(dst_addr=dst_addr)
     redis = RedisClient()
+    scr_cli = SmartCommunityRouterAPI()
+    scr_cli.connect()
 
-    last_packet_ids =  [ b_id.decode('utf-8') for b_id in redis.hvals(app_id)]
-    code = rpc_client.update_buf_read_offset(app_id, last_packet_ids)
-    print(redis.hvals(1))
+    print("========get_buf_info==========")
+    dst_first_packet_id = rpc_client.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+    print(dst_first_packet_id)
+
+    print("========packet_arrival==========")
+    print(scr_cli.check_packet_arrival(app_id, dst_first_packet_id))
+
+    print("========get last buffer info==========")
+    src_last_packet_id = scr_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
+    print(src_last_packet_id)
+    print(rpc_client.check_packet_arrival(app_id, src_last_packet_id))  #in this case packet_id
 
 if __name__ == "__main__":
     if args.program == 'rest':

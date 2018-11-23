@@ -66,7 +66,6 @@ class RpcClient:
         return status.code
 
     def get_buf_info(self, app_id, kind):
-        print("=====debug: grpc_client.py get_buf_info")
         status = self._stub.GetBufInfo(docker_migration_pb2.BufInfo(app_id=app_id, kind=kind))
         return status.code
 
