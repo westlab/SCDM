@@ -19,13 +19,19 @@ class ClientMessageCode(Enum):
     SERV_CHG_APP_BUF_R_OFFSET = 9
     DM_ASK_APP_INFO = 10
     DM_INIT_BUF = 11
-    CLI_REINIT=14
+    DM_ASK_WRITE_BUF_INFO = 12
+    DM_ASK_PACKET_ARRIVAL = 13
+    CLI_REINIT=16
 
 class ClientSignalCode(Enum):
     NONE=0
     SRC_MIG_REQUESTED=1
     SRC_BUF_EMPTY=2
     DST_BUF_INIT_COMP=3
+
+class ClientBufInfo(Enum):
+    BUF_FIRST=0
+    BUF_LAST=1
 
 class SmartCommunityRouterAPI:
     def __init__(self):
@@ -66,9 +72,20 @@ class SmartCommunityRouterAPI:
     def update_buf_read_offset(self, app_id, s_packet_ids):
         i_message_type = ClientMessageCode.SERV_CHG_APP_BUF_R_OFFSET.value
         ret = self._soc_cli.send_formalized_message(app_id, i_message_type, '|'.join(s_packet_ids))
-        pdb.set_trace()
         message = self._soc_cli.read()
         return True
+
+    def get_buf_info(self, app_id, kind):
+        i_message_type = ClientMessageCode.DM_ASK_WRITE_BUF_INFO.value
+        ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload=str(kind))
+        buf_info = int(self._soc_cli.read()['payload'])
+        return buf_info # in this case, packet_id
+
+    def check_packet_arrival(self, app_id, identifier): #in this case, packet_id
+        i_message_type = ClientMessageCode.DM_ASK_PACKET_ARRIVAL.value
+        ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload=str(identifier))
+        does_arrive = int(self._soc_cli.read()['payload'])
+        return does_arrive
 
 class RemoteComClient:
     BUFFER_SIZE = 1024
@@ -93,7 +110,6 @@ class RemoteComClient:
     """
     def send_formalized_message(self, app_id, message_type, payload=''):
         message = self.formalize_message(app_id, message_type, payload)
-        print("message: {0}".format(message))
         self.socket.send(message.encode())
 
     """
@@ -106,9 +122,8 @@ class RemoteComClient:
     def read(self):
         data = self.socket.recv(RemoteComClient.BUFFER_SIZE)
         message = self.interpret_message(data)
-        print("============================data=======================================")
-        print(data)
-        print("read")
+        #print("============================data=======================================")
+        #print(message)
         return message
     """
     Formalize a message passing to vnf_platform
@@ -139,5 +154,4 @@ class RemoteComClient:
         arr = str_message.split(",")
         formatted_message = { key_arr[i]: arr[i] for i in range(len(key_arr)) }
         return formatted_message
-
 

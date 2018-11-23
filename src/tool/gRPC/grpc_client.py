@@ -65,3 +65,12 @@ class RpcClient:
         status = self._stub.UpdateBufReadOffset(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=s_packet_ids))
         return status.code
 
+    def get_buf_info(self, app_id, kind):
+        print("=====debug: grpc_client.py get_buf_info")
+        status = self._stub.GetBufInfo(docker_migration_pb2.BufInfo(app_id=app_id, kind=kind))
+        return status.code
+
+    def check_packet_arrival(self, app_id, buf_info):
+        status = self._stub.CheckPacketArrival(docker_migration_pb2.BufInfo(app_id=app_id, buf_info=buf_info))
+        return status.code
+

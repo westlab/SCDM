@@ -210,6 +210,17 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         self._logger.info("Update buffer read offset")
         code = self._scr_cli.update_buf_read_offset(req.app_id, req.s_packet_ids)
         return docker_migration_pb2.Status(code=code)
+
+    def GetBufInfo(self, req, context):
+        self._logger.info("Get buffer information")
+        buf_info = self._scr_cli.get_buf_info(req.app_id, req.kind) # packet id
+        return docker_migration_pb2.Status(code=buf_info)
+
+    def CheckPacketArrival(self, req, context):
+        self._logger.info("Check packet arrival")
+        does_arrive =  1 if self._scr_cli.check_packet_arrival(req.app_id, req.buf_info) else 0
+        return docker_migration_pb2.Status(code=does_arrive)
+
 """
 Start gRPC server based on given addr and port number.
 
