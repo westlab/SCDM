@@ -228,7 +228,7 @@ class MigrationWorker:
 
         return self.returned_data_creator('fin')
 
-    def run_with_scr(self):
+    def run_with_scr(self, app_id=0):
         self._logger.info("run: Init RPC client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         redis_cli = RedisClient()
@@ -236,27 +236,23 @@ class MigrationWorker:
         scr_cli.connect()
 
         #### src app info
-        app_id = 0
         app_info_dict = scr_cli.get_app_info_dict(app_id)
 
         #### create buffer
         dst_app_id = rpc_client.prepare_app_launch(app_info_dict['buf_loc'],app_info_dict['sig_loc'],app_info_dict['rules'])
 
         ### check src and dst buffer
-        ## check whether dst first packet is arrived at src node
-
-        # get dst first packetA →packetA_id
-        # check src packetA
-        dst_first_packet_id = rpc_client.get_buf_info(app_id, kind=DM_ASK_FIRST_WRITE_BUF)  #in this case packet_id
-        scr_cli.check_packet_arrival(app_id, dst_first_packet_id)
-
+        dst_first_packet_id = remote_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+        if not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id)):
+            return self.returned_data_creator('create')
         ####  request ready for checkpoint
         # del buffer
         scr_cli.prepare_for_checkpoint(app_id)
 
         ## check whether last src packet is arrived at dst node
-        src_last_packet_id = scr_cli.get_buf_info(app_id, kind=DM_ASK_LAST_WRITE_BUF)  #in this case packet_id
-        rpc_client.check_packet_arrival(app_id, src_last_packet_id)  #in this case packet_id
+        src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
+        if not (remote_rpc_cli.check_packet_arrival(app_id, src_last_packet_id)):  #in this case packet_id
+            return self.returned_data_creator('create')
 
         # Inspect Images
         code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)

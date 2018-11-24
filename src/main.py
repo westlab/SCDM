@@ -42,10 +42,9 @@ def debug():
     print("========get_buf_info==========")
     local_rpc_cli.ping()
     remote_rpc_cli.ping()
-    #dst_first_packet_id = remote_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
-    #print(dst_first_packet_id)
+    dst_first_packet_id = remote_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+    print(dst_first_packet_id)
     #print("========packet_arrival==========")
-    dst_first_packet_id = 0
     print(local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))
     print("========get last buffer info==========")
     src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
@@ -98,7 +97,6 @@ def run_prop():
 
 def run_con():
     from tool.migration_worker import MigrationWorker
-    from tool.docker.docker_api import DockerApi
 
     checkpoint_option_keys = ['ports']
     migration_option_keys = ['host', 'dst_addr']
@@ -117,14 +115,13 @@ def run_con():
 
 def run_with_scr():
     from tool.migration_worker import MigrationWorker
-    from tool.docker.docker_api import DockerApi
 
     checkpoint_option_keys = ['ports']
     migration_option_keys = ['host', 'dst_addr']
     version = 'latest'
 
     ports =[]
-    dst_addr = '10.24.128.124' # miura-router2
+    dst_addr = '10.24.128.194' # miura-router1 
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
