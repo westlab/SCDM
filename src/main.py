@@ -33,22 +33,26 @@ def debug():
     from tool.gRPC.grpc_client import RpcClient
     from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
 
-    dst_addr = '10.24.128.194' # miura-router2 
+    dst_addr = '10.24.128.194' # miura-router1 
     local_rpc_cli = RpcClient()#dst_addr=dst_addr)
     remote_rpc_cli = RpcClient(dst_addr=dst_addr)
     redis = RedisClient()
 
     app_id = 0
     print("========get_buf_info==========")
-    dst_first_packet_id = remote_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
-    print(dst_first_packet_id)
-    print("========packet_arrival==========")
+    local_rpc_cli.ping()
+    remote_rpc_cli.ping()
+    #dst_first_packet_id = remote_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+    #print(dst_first_packet_id)
+    #print("========packet_arrival==========")
+    dst_first_packet_id = 0
     print(local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))
     print("========get last buffer info==========")
     src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
     print(src_last_packet_id)
     print("========packet_arrival==========")
     print(remote_rpc_cli.check_packet_arrival(app_id, src_last_packet_id))  #in this case packet_id
+    print('fin')
 
 def rest_server():
     from flask import Flask

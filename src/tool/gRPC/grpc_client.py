@@ -71,5 +71,5 @@ class RpcClient:
 
     def check_packet_arrival(self, app_id, buf_info):
         status = self._stub.CheckPacketArrival(docker_migration_pb2.BufInfo(app_id=app_id, buf_info=buf_info))
-        return status.code
+        return bool(status.code)
 

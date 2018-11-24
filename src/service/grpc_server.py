@@ -2,6 +2,7 @@ from concurrent import futures
 import grpc
 import time
 import os
+import pdb
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE
 from tool.docker.docker_api import DockerApi
@@ -218,7 +219,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
 
     def CheckPacketArrival(self, req, context):
         self._logger.info("Check packet arrival")
-        does_arrive =  1 if self._scr_cli.check_packet_arrival(req.app_id, req.buf_info) else 0
+        does_arrive = self._scr_cli.check_packet_arrival(req.app_id, req.buf_info)
         return docker_migration_pb2.Status(code=does_arrive)
 
 """
