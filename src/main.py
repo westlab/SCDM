@@ -33,7 +33,7 @@ def debug():
     from tool.gRPC.grpc_client import RpcClient
     from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
 
-    dst_addr = '10.24.128.194' # miura-router1 
+    dst_addr = '10.24.12.141' # miura-router1 
     local_rpc_cli = RpcClient()#dst_addr=dst_addr)
     remote_rpc_cli = RpcClient(dst_addr=dst_addr)
     redis = RedisClient()
@@ -121,7 +121,7 @@ def run_with_scr():
     version = 'latest'
 
     ports =[]
-    dst_addr = '10.24.128.194' # miura-router1 
+    dst_addr = '10.24.12.141' # miura-router1 
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))

@@ -232,6 +232,8 @@ class MigrationWorker:
         self._logger.info("run: Init RPC client")
         remote_rpc_cli = RpcClient(dst_addr=self._m_opt['dst_addr'])
         local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
+        dst_first_packet_id =0
+        src_last_packet_id =0
 
         redis_cli = RedisClient()
 
@@ -243,18 +245,31 @@ class MigrationWorker:
         dst_app_id = remote_rpc_cli.prepare_app_launch(app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
 
         ### check src and dst buffer
-        dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+        counter=0
+        while (not bool(dst_first_packet_id)):
+            dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
         pdb.set_trace()
-        if not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id)):
-            return self.returned_data_creator('create')
+        while (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
+            sleep(.01)
+            counter+=1
+            if counter >= 100:
+                return self.returned_data_creator('create')
+
         ####  request ready for checkpoint
         # del buffer
+        pdb.set_trace()
         local_rpc_cli.prepare_for_checkpoint(app_id)
 
         # check whether last src packet is arrived at dst node
-        src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
-        if not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id)):  #in this case packet_id
-            return self.returned_data_creator('create')
+        counter=0
+        while (not bool(src_last_packet_id)):
+            src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
+        pdb.set_trace()
+        while(not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
+            sleep(.01)
+            counter+=1
+            if counter >= 100:
+                return self.returned_data_creator('create')
 
         # Inspect Images
         code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
