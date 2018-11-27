@@ -202,6 +202,18 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         dst_app_id = self._scr_cli.prepare_app_launch(req.buf_loc, req.sig_loc, req.rules)
         return docker_migration_pb2.Status(code=dst_app_id)
 
+    def PrepareForCheckpoint(self, req, context):
+        self._logger.info("Prepare for Checkpoint")
+        code = self._scr_cli.prepare_app_launch(req.app_id)
+        return docker_migration_pb2.Status(code=code)
+
+    def GetAppInfo(self, req, context):
+        self._logger.info("Get App Info")
+        info_dict = self._scr_cli.get_app_info_dict(req.app_id)
+        return docker_migration_pb2.AppInfo(buf_loc=info_dict['buf_loc'],
+                                            sig_loc=info_dict['sig_loc'],
+                                            rules=info_dict['rules'])
+
     """
     Update Application buffer read offset
     @params PacketIds ( Array packet_ids)

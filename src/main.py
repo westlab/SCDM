@@ -143,38 +143,51 @@ def cli_soc():
 
     app_id = 0;
 
-    ## =============== SRC-1 =================
+    # =============== SRC-1 =================
     print("================= SRC-1====================")
     i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
     ret = cli.send_formalized_message(app_id, i_message_type)
     message = cli.read()
     buf_arr = message['payload'].split('|')[:1]
-    rule_arr = message['payload'].split('|')[2:]
+    existing_rule_arr = message['payload'].split('|')[2:]
+    print(existing_rule_arr)
 
     ## =============== DST-1 =================
     # Init buf
-    print("================= DST-1====================")
-    i_message_type = ClientMessageCode.DM_INIT_BUF.value
-    ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
-    dst_app_id = cli.read()['payload']
-    print(dst_app_id)
+    #print("================= DST-1====================")
+    #i_message_type = ClientMessageCode.DM_INIT_BUF.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buf0')
+    #dst_app_id = cli.read()['payload']
+
+    print("================= SRC-2====================")
+    #i_message_type = ClientMessageCode.SERV_CHG_SIG.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
+    #message = cli.read()
+    # delete all rules
 
     # Add all rules  skip rule because of testing same host
+    rule_arr = ['601:/Node/','602:/Hoge/','603:/FUGA/','604:/MIURA/','605:/TATSUKI/', '606:/KEIO/']
     i_message_type = ClientMessageCode.BULK_RULE_INS.value
     ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
     message = cli.read()
 
-    ## =============== SRC-2 =================
-    # Add all rules  skip rule because of testing same host
-    print("================= SRC-2====================")
-    i_message_type = ClientMessageCode.SERV_CHG_SIG.value
-    ret = cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
+
+    pdb.set_trace()
+
+    i_message_type = ClientMessageCode.BULK_RULE_DEL.value
+    ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(existing_rule_arr))
     message = cli.read()
 
-    # delete all rules
-    i_message_type = ClientMessageCode.BULK_RULE_DEL.value
-    ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
-    message = cli.read()
+
+    sleep(10)
+
+    ## =============== SRC-2 =================
+    # Add all rules  skip rule because of testing same host
+
+    ## delete all rules
+    #i_message_type = ClientMessageCode.BULK_RULE_DEL.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    #message = cli.read()
 
     cli.close()
 

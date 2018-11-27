@@ -15,14 +15,16 @@ service  DockerMigrator {
     rpc CreateTmpDir (Signal) returns (Status) {}
     rpc ReloadDockerd (DockerSummary) returns (Status) {}
     rpc AllocateContainerArtifacts (ContainerArtifacts) returns (Status) {}
-    rpc UpdateBufReadOffset (SessionInfo) returns (Status) {}
-    rpc GetBufInfo (BufInfo) returns (Status) {}
-    rpc CheckPacketArrival (BufInfo) returns (Status) {}
     // A server-to-client streaming RPC
 
     // For Smart Coommunity Router
     // A simple RPC
     rpc PrepareAppLaunch (AppInfo) returns (Status) {}
+    rpc PrepareForCheckpoint(SessionInfo) returns (Status) {}
+    rpc GetAppInfo(SessionInfo) returns (AppInfo) {}
+    rpc UpdateBufReadOffset (SessionInfo) returns (Status) {}
+    rpc GetBufInfo (BufInfo) returns (Status) {}
+    rpc CheckPacketArrival (BufInfo) returns (Status) {}
     rpc RequestMigration (DockerSummary) returns (stream Status) {}
 }
 
