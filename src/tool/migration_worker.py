@@ -13,7 +13,8 @@ from tool.docker.docker_layer import DockerLayer
 from tool.docker.docker_container_extraction import DockerContainerExtraction
 from tool.docker.docker_container_extraction import DockerVolume
 from tool.gRPC.grpc_client import RpcClient
-from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient
+from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
+from tool.redis.redis_client import RedisClient
 
 # For evaluation
 from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst, ConservativeMigrationConst
@@ -169,6 +170,7 @@ class MigrationWorker:
         else:
             return self.returned_data_creator('commit')
 
+        print("pull")
         # ===============PULL=================
         self._logger.info("Pull an image on dst")
         t_recorder.track(ConservativeMigrationConst.PULL)
@@ -226,30 +228,54 @@ class MigrationWorker:
 
         return self.returned_data_creator('fin')
 
-    def run_with_scr(self):
+    def run_with_scr(self, app_id=0):
         self._logger.info("run: Init RPC client")
-        rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
-        scr_cli = SmartCommunityRouterAPI()
-        scr_cli.connect()
+        remote_rpc_cli = RpcClient(dst_addr=self._m_opt['dst_addr'])
+        local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
+        dst_first_packet_id =0
+        src_last_packet_id =0
+
+        redis_cli = RedisClient()
 
         #### src app info
-        app_id = 0
-        app_info_dict = scr_cli.get_app_info_dict(app_id)
+        # Check docker_migration.proto for refering data format of app_info_dict
+        app_info_dict = local_rpc_cli.get_app_info_dict(app_id)
+
         #### create buffer
-        dst_app_id = rpc_client.prepare_app_launch(app_info_dict['buf_loc'],app_info_dict['sig_loc'],app_info_dict['rules'])
+        dst_app_id = remote_rpc_cli.prepare_app_launch(app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
+
+        ### check src and dst buffer
+        counter=0
+        while (not bool(dst_first_packet_id)):
+            dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+        while (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
+            sleep(.01)
+            counter+=1
+            if counter >= 100:
+                return self.returned_data_creator('create')
 
         ####  request ready for checkpoint
-        scr_cli.prepare_for_checkpoint(app_id)
+        # del buffer
+        local_rpc_cli.prepare_for_checkpoint(app_id)
+
+        # check whether last src packet is arrived at dst node
+        counter=0
+        while (not bool(src_last_packet_id)):
+            src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
+        while(not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
+            sleep(.01)
+            counter+=1
+            if counter >= 100:
+                return self.returned_data_creator('create')
 
         # Inspect Images
-        code = rpc_client.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
+        code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
 
         # Checkpoint
         has_checkpointed = self._d_cli.checkpoint(self._c_name)
-
         if has_checkpointed is not True:
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
-        has_create_tmp_dir = rpc_client.create_tmp_dir(self._c_id)
+        has_create_tmp_dir = remote_rpc_cli.create_tmp_dir(self._c_id)
         if has_create_tmp_dir is not CODE_SUCCESS:
             #TODO: fix
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
@@ -259,18 +285,22 @@ class MigrationWorker:
         if has_sent is not True:
             return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
-        code = rpc_client.allocate_container_artifacts(self._d_c_extractor.c_name,
+        code = remote_rpc_cli.allocate_container_artifacts(self._d_c_extractor.c_name,
                                                        self._d_c_extractor.c_id,
                                                        self._d_c_extractor.i_layer_ids,
                                                        self._d_c_extractor.c_layer_ids,
                                                        volumes=volumes)
         # Reload daemon
-        code = rpc_client.reload_daemon()
+        code = remote_rpc_cli.reload_daemon()
+
+        ## Update application buffer read offset
+        #s_last_packet_ids =  [ b_id.decode('utf-8') for b_id in redis_cli.hvals(app_id)]
+        #code = remote_rpc_cli.update_buf_read_offset(app_id, s_last_packet_ids)
 
         # Restore
-        code = rpc_client.restore(self._c_name)
+        code = remote_rpc_cli.restore(self._c_name)
         if code != CODE_SUCCESS:
-            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+            return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
         return self.returned_data_creator('fin')
 
     """

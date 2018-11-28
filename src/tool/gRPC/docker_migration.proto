@@ -16,12 +16,16 @@ service  DockerMigrator {
     rpc ReloadDockerd (DockerSummary) returns (Status) {}
     rpc AllocateContainerArtifacts (ContainerArtifacts) returns (Status) {}
     // A server-to-client streaming RPC
-    rpc RequestMigration (DockerSummary) returns (stream Status) {}
-
 
     // For Smart Coommunity Router
     // A simple RPC
     rpc PrepareAppLaunch (AppInfo) returns (Status) {}
+    rpc PrepareForCheckpoint(SessionInfo) returns (Status) {}
+    rpc GetAppInfo(SessionInfo) returns (AppInfo) {}
+    rpc UpdateBufReadOffset (SessionInfo) returns (Status) {}
+    rpc GetBufInfo (BufInfo) returns (Status) {}
+    rpc CheckPacketArrival (BufInfo) returns (Status) {}
+    rpc RequestMigration (DockerSummary) returns (stream Status) {}
 }
 
 // A DockerSummary is a message
@@ -91,3 +95,15 @@ message AppInfo {
     string sig_loc = 2;
     repeated string rules = 3;
 }
+
+message SessionInfo {
+    int32 app_id = 1;
+    repeated string s_packet_ids = 2;
+}
+
+message BufInfo {
+    int32 app_id = 1;
+    int32 kind = 2;
+    int32 buf_info = 3; // in this case, packet_id
+}
+

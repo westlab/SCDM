@@ -35,13 +35,11 @@ def dict_convetor(options):
 
 class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
-    Provides methods that implement functionality of docker migration server.
-    """
-    def __init__(self):
+    Provides methods that implement functionality of docker migration server.  """
+    def __init__(self, docker_api):
         LoggerFactory.init()
         self._logger = LoggerFactory.create_logger(self)
-        self._cli = DockerApi()
-        self._cli.login()
+        self._cli = docker_api
         self._scr_cli = SmartCommunityRouterAPI()
         self._scr_cli.connect()
 
@@ -91,7 +89,6 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         second_code = CODE_SUCCESS if self._cli.fetch_image(name=req.image_name, version=req.version) is not None else os.errno.EHOSTDOWN
         yield docker_migration_pb2.Status(code=second_code)
 
-        #TODO: 存在している場合には、削除/オプションを付け加えて再生成する必要あり
         self._logger.info("Create the container from the image with given options")
         c = self._cli.create(req.image_name, options, req.version)
         if c is not None:
@@ -144,6 +141,8 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
                                                 req.volumes)
         code = CODE_SUCCESS if d_extractor.allocate_container_artifacts() is True else CODE_NO_IMAGE
         return docker_migration_pb2.Status(code=code)
+
+
 
     """
     Create temporary directory for storing container runnning artifacts 
@@ -203,15 +202,48 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         dst_app_id = self._scr_cli.prepare_app_launch(req.buf_loc, req.sig_loc, req.rules)
         return docker_migration_pb2.Status(code=dst_app_id)
 
+    def PrepareForCheckpoint(self, req, context):
+        self._logger.info("Prepare for Checkpoint")
+        is_ready = self._scr_cli.prepare_for_checkpoint(req.app_id)
+        code = CODE_SUCCESS if is_ready else os.errno.EHOSTDOWN
+        return docker_migration_pb2.Status(code=code)
+
+    def GetAppInfo(self, req, context):
+        self._logger.info("Get App Info")
+        info_dict = self._scr_cli.get_app_info_dict(req.app_id)
+        return docker_migration_pb2.AppInfo(buf_loc=info_dict['buf_loc'],
+                                            sig_loc=info_dict['sig_loc'],
+                                            rules=info_dict['rules'])
+
+    """
+    Update Application buffer read offset
+    @params PacketIds ( Array packet_ids)
+    @return Status(Integer code)
+    """
+    def UpdateBufReadOffset(self, req, context):
+        self._logger.info("Update buffer read offset")
+        code = self._scr_cli.update_buf_read_offset(req.app_id, req.s_packet_ids)
+        return docker_migration_pb2.Status(code=code)
+
+    def GetBufInfo(self, req, context):
+        self._logger.info("Get buffer information")
+        buf_info = self._scr_cli.get_buf_info(req.app_id, req.kind) # packet id
+        return docker_migration_pb2.Status(code=buf_info)
+
+    def CheckPacketArrival(self, req, context):
+        self._logger.info("Check packet arrival")
+        does_arrive = self._scr_cli.check_packet_arrival(req.app_id, req.buf_info)
+        return docker_migration_pb2.Status(code=does_arrive)
+
 """
 Start gRPC server based on given addr and port number.
 
 @params String addr
 @params Integer port
 """
-def serve(addr, port):
+def serve(addr, port, docker_api):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
-    docker_migration_pb2_grpc.add_DockerMigratorServicer_to_server(DockerMigrator(), server)
+    docker_migration_pb2_grpc.add_DockerMigratorServicer_to_server(DockerMigrator(docker_api), server)
     addr_with_port = addr + ':' + str(port)
     server.add_insecure_port(addr_with_port)
     server.start()

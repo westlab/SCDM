@@ -58,6 +58,27 @@ class RpcClient:
         return gen
 
     def prepare_app_launch(self, buf_loc, sig_loc, rules):
-        dst_app_id = self._stub.PrepareAppLaunch(docker_migration_pb2.AppInfo(buf_loc=buf_loc, sig_loc=sig_loc, rules=rules))
-        return dst_app_id
+        status = self._stub.PrepareAppLaunch(docker_migration_pb2.AppInfo(buf_loc=buf_loc, sig_loc=sig_loc, rules=rules))
+        return status.code 
+
+    def prepare_for_checkpoint(self, app_id):
+        status = self._stub.PrepareForCheckpoint(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=[]))
+        return status.code
+
+    def update_buf_read_offset(self, app_id, s_packet_ids):
+        status = self._stub.UpdateBufReadOffset(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=s_packet_ids))
+        return status.code
+
+    def get_app_info_dict(self, app_id):
+        info = self._stub.GetAppInfo(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=[]))
+        return info
+
+    def get_buf_info(self, app_id, kind):
+        status = self._stub.GetBufInfo(docker_migration_pb2.BufInfo(app_id=app_id, kind=kind))
+        return status.code
+
+    def check_packet_arrival(self, app_id, buf_info):
+        status = self._stub.CheckPacketArrival(docker_migration_pb2.BufInfo(app_id=app_id, buf_info=buf_info))
+        return bool(status.code)
+
 
