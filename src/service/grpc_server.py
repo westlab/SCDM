@@ -204,7 +204,8 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
 
     def PrepareForCheckpoint(self, req, context):
         self._logger.info("Prepare for Checkpoint")
-        code = self._scr_cli.prepare_for_checkpoint(req.app_id)
+        is_ready = self._scr_cli.prepare_for_checkpoint(req.app_id)
+        code = CODE_SUCCESS if is_ready else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=code)
 
     def GetAppInfo(self, req, context):

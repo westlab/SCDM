@@ -65,7 +65,7 @@ class SmartCommunityRouterAPI:
 
     def prepare_for_checkpoint(self, app_id):
         i_message_type = ClientMessageCode.SERV_CHG_SIG.value
-        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=ClientSignalCode.SRC_MIG_REQUESTED.value)
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_MIG_REQUESTED.value))
         message = self._soc_cli.read()
         return message
 

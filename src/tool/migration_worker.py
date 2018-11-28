@@ -248,7 +248,6 @@ class MigrationWorker:
         counter=0
         while (not bool(dst_first_packet_id)):
             dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
-        pdb.set_trace()
         while (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
             sleep(.01)
             counter+=1
@@ -257,14 +256,12 @@ class MigrationWorker:
 
         ####  request ready for checkpoint
         # del buffer
-        pdb.set_trace()
         local_rpc_cli.prepare_for_checkpoint(app_id)
 
         # check whether last src packet is arrived at dst node
         counter=0
         while (not bool(src_last_packet_id)):
             src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
-        pdb.set_trace()
         while(not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
             sleep(.01)
             counter+=1
@@ -296,14 +293,14 @@ class MigrationWorker:
         # Reload daemon
         code = remote_rpc_cli.reload_daemon()
 
-        # Update application buffer read offset
-        s_last_packet_ids =  [ b_id.decode('utf-8') for b_id in redis_cli.hvals(app_id)]
-        code = remote_rpc_cli.update_buf_read_offset(app_id, s_last_packet_ids)
+        ## Update application buffer read offset
+        #s_last_packet_ids =  [ b_id.decode('utf-8') for b_id in redis_cli.hvals(app_id)]
+        #code = remote_rpc_cli.update_buf_read_offset(app_id, s_last_packet_ids)
 
         # Restore
         code = remote_rpc_cli.restore(self._c_name)
         if code != CODE_SUCCESS:
-            return self.returned_data_creator(rpc_client.restore.__name__, code=code)
+            return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
         return self.returned_data_creator('fin')
 
     """
