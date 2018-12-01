@@ -272,8 +272,6 @@ class MigrationWorker:
 
         # Check signal status
         print('check status')
-        print(local_rpc_cli.check_status(app_id))
-
         is_ready=False
         while (not is_ready):
             is_ready = local_rpc_cli.check_status(app_id)

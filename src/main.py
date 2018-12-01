@@ -137,9 +137,23 @@ def codegen():
 def cli_soc():
     from tool.socket.remote_com_client import RemoteComClient
     from tool.socket.remote_com_client import ClientMessageCode, ClientSignalCode
+    app_id=0
 
     cli = RemoteComClient()
     cli.connect()
+    i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
+    ret = cli.send_formalized_message(app_id, i_message_type)
+    message = cli.read()
+    buf_arr = message['payload'].split('|')[:1]
+    existing_rule_arr = message['payload'].split('|')[2:]
+    print(existing_rule_arr)
+
+    rule_arr = ['601:/Node/','602:/Hoge/','603:/FUGA/','604:/MIURA/','605:/TATSUKI/', '606:/KEIO/']
+    i_message_type = ClientMessageCode.BULK_RULE_INS.value
+    ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    message = cli.read()
+
+    cli.close()
 
 
 def sync():
