@@ -91,8 +91,8 @@ class SmartCommunityRouterAPI:
     def get_buf_info(self, app_id, kind):
         i_message_type = ClientMessageCode.DM_ASK_WRITE_BUF_INFO.value
         ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload=str(kind))
-        buf_info = int(self._soc_cli.read()['payload'])
-        return buf_info # in this case, packet_id
+        buf_info = self._soc_cli.read()['payload']
+        return int(buf_info) if buf_info else 0
 
     def check_packet_arrival(self, app_id, identifier): #in this case, packet_id
         i_message_type = ClientMessageCode.DM_ASK_PACKET_ARRIVAL.value
