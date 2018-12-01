@@ -211,9 +211,6 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     def CheckStatus(self, req, context):
         self._logger.info("Check Status")
         code = self._scr_cli.check_status(req.app_id)
-        print("CheckStatus")
-        print(code)
-        print("CheckStatus")
         return docker_migration_pb2.Status(code=code)
 
     def GetAppInfo(self, req, context):

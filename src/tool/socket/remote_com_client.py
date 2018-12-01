@@ -97,8 +97,8 @@ class SmartCommunityRouterAPI:
     def check_packet_arrival(self, app_id, identifier): #in this case, packet_id
         i_message_type = ClientMessageCode.DM_ASK_PACKET_ARRIVAL.value
         ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload=str(identifier))
-        does_arrive = int(self._soc_cli.read()['payload'])
-        return does_arrive
+        does_arrive = self._soc_cli.read()['payload']
+        return int(does_arrive) if does_arrive else 0
 
 class RemoteComClient:
     BUFFER_SIZE = 1024
