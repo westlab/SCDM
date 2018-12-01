@@ -208,6 +208,14 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
         code = CODE_SUCCESS if is_ready else os.errno.EHOSTDOWN
         return docker_migration_pb2.Status(code=code)
 
+    def CheckStatus(self, req, context):
+        self._logger.info("Check Status")
+        code = self._scr_cli.check_status(req.app_id)
+        print("CheckStatus")
+        print(code)
+        print("CheckStatus")
+        return docker_migration_pb2.Status(code=code)
+
     def GetAppInfo(self, req, context):
         self._logger.info("Get App Info")
         info_dict = self._scr_cli.get_app_info_dict(req.app_id)

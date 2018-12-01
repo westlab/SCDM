@@ -249,13 +249,13 @@ class MigrationWorker:
         while (not bool(dst_first_packet_id)):
             dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
         while (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
-            sleep(.01)
             counter+=1
             if counter >= 100:
                 return self.returned_data_creator('create')
 
         ####  request ready for checkpoint
         # del buffer
+        print('prepare for checkpoint')
         local_rpc_cli.prepare_for_checkpoint(app_id)
 
         # check whether last src packet is arrived at dst node
@@ -263,7 +263,6 @@ class MigrationWorker:
         while (not bool(src_last_packet_id)):
             src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
         while(not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
-            sleep(.01)
             counter+=1
             if counter >= 100:
                 return self.returned_data_creator('create')
@@ -271,7 +270,17 @@ class MigrationWorker:
         # Inspect Images
         code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
 
+        # Check signal status
+        print('check status')
+        print(local_rpc_cli.check_status(app_id))
+
+        is_ready=False
+        while (not is_ready):
+            is_ready = local_rpc_cli.check_status(app_id)
+            print(is_ready)
+
         # Checkpoint
+        print("==============checkpoint==============")
         has_checkpointed = self._d_cli.checkpoint(self._c_name)
         if has_checkpointed is not True:
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)

@@ -16,18 +16,20 @@ class ClientMessageCode(Enum):
     MSG_WAIT = 6
     MSG_OTHER = 7
     SERV_CHG_SIG = 8
-    SERV_CHG_APP_BUF_R_OFFSET = 9
-    DM_ASK_APP_INFO = 10
-    DM_INIT_BUF = 11
-    DM_ASK_WRITE_BUF_INFO = 12
-    DM_ASK_PACKET_ARRIVAL = 13
-    CLI_REINIT=16
+    SERV_CHK_SIG = 9
+    SERV_CHG_APP_BUF_R_OFFSET = 10
+    DM_ASK_APP_INFO = 11
+    DM_INIT_BUF = 12
+    DM_ASK_WRITE_BUF_INFO = 13
+    DM_ASK_PACKET_ARRIVAL = 14
+    CLI_REINIT=17
 
 class ClientSignalCode(Enum):
     NONE=0
     SRC_MIG_REQUESTED=1
     SRC_BUF_EMPTY=2
-    DST_BUF_INIT_COMP=3
+    SRC_WAITING=3
+    DST_BUF_INIT_COMP=4
 
 class ClientBufInfo(Enum):
     BUF_FIRST=0
@@ -63,11 +65,23 @@ class SmartCommunityRouterAPI:
 
         return int(dst_app_id)
 
+
     def prepare_for_checkpoint(self, app_id):
         i_message_type = ClientMessageCode.SERV_CHG_SIG.value
         ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_MIG_REQUESTED.value))
         message = self._soc_cli.read()
         return message
+
+    def check_status(self, app_id):
+        i_message_type = ClientMessageCode.SERV_CHK_SIG.value
+        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
+        print("===========================")
+        msg = self._soc_cli.read()
+        print(msg)
+        if int(msg['message_type']) is ClientMessageCode.SERV_CHK_SIG.value:
+            return int(msg['payload'])
+        else:
+            return False
 
     def update_buf_read_offset(self, app_id, s_packet_ids):
         i_message_type = ClientMessageCode.SERV_CHG_APP_BUF_R_OFFSET.value
