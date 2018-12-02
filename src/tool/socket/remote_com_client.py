@@ -24,6 +24,7 @@ class ClientMessageCode(Enum):
     DM_ASK_WRITE_BUF_INFO = 13
     DM_ASK_PACKET_ARRIVAL = 14
     CLI_REINIT=17
+    ERROR=18
 
 class ClientSignalCode(Enum):
     NONE=0
@@ -43,13 +44,18 @@ class SmartCommunityRouterAPI:
     def connect(self):
         self._soc_cli.connect()
 
+    def has_no_error(self, message):
+        return True if int(message['message_type']) is not 18 else False
+
+
     def get_app_info_dict(self, app_id):
         counter = 0
         i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
         while (counter <= 1000):
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
+            pdb.set_trace()
             message = self._soc_cli.read()
-            if message['payload']:
+            if self.has_no_error(message):
                 info = { 
                     "buf_loc": message['payload'].split('|')[:1][0],
                     "sig_loc": message['payload'].split('|')[1:2][0],
@@ -70,7 +76,7 @@ class SmartCommunityRouterAPI:
         while ( not init_done and counter <=1000):
             ret = self._soc_cli.send_formalized_message(app_id, ClientMessageCode.DM_INIT_BUF.value, payload='/tmp/serv_buffer0')
             message = self._soc_cli.read()
-            if message['payload']:
+            if self.has_no_error(message):
                 dst_app_id = int(message['payload'])
                 init_done = True
             else:
@@ -94,7 +100,7 @@ class SmartCommunityRouterAPI:
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
             msg = self._soc_cli.read()
             pdb.set_trace()
-            if int(msg['payload']) is not 0:
+            if self.has_no_error(msg) and int(msg['payload']) is not 0:
                 return int(msg['payload'])
             else:
                 sleep(0.0001) # 100μs
