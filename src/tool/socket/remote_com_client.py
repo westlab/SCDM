@@ -93,8 +93,12 @@ class SmartCommunityRouterAPI:
         while (counter <= 1000):
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
             msg = self._soc_cli.read()
-            return int(msg['payload']) if int(msg['payload']) is not 0 else sleep(0.0001) # 100μs
-            counter+=1
+            pdb.set_trace()
+            if int(msg['payload']) is not 0:
+                return int(msg['payload'])
+            else:
+                sleep(0.0001) # 100μs
+                counter+=1
         return False
 
     def update_buf_read_offset(self, app_id, s_packet_ids):
@@ -125,7 +129,10 @@ class RemoteComClient:
     def connect(self):
         self.socket.connect(self.socket_path)
 
-    def send(self):
+    def send(self, message):
+        print("=========send===============")
+        print(message.encode())
+        print("========================")
         self.socket.send(message.encode())
 
     def close(self):
@@ -138,7 +145,7 @@ class RemoteComClient:
     """
     def send_formalized_message(self, app_id, message_type, payload=''):
         message = self.formalize_message(app_id, message_type, payload)
-        self.socket.send(message.encode())
+        self.send(message)
 
     """
     Read socket data, and return the returned data
