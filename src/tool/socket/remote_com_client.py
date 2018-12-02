@@ -50,7 +50,6 @@ class SmartCommunityRouterAPI:
             print("get_app_info_loop")
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
             message = self._soc_cli.read()
-            pdb.set_trace()
             if message['payload']:
                 info = { 
                     "buf_loc": message['payload'].split('|')[:1][0],
