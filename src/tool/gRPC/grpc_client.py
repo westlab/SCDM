@@ -65,6 +65,10 @@ class RpcClient:
         status = self._stub.PrepareForCheckpoint(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=[]))
         return status.code
 
+    def check_status(self, app_id):
+        status = self._stub.CheckStatus(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=[]))
+        return bool(status.code)
+
     def update_buf_read_offset(self, app_id, s_packet_ids):
         status = self._stub.UpdateBufReadOffset(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=s_packet_ids))
         return status.code
