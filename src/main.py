@@ -135,25 +135,28 @@ def codegen():
     codegen.run()
 
 def cli_soc():
-    from tool.socket.remote_com_client import RemoteComClient
-    from tool.socket.remote_com_client import ClientMessageCode, ClientSignalCode
+    from tool.socket.remote_com_client import RemoteComClient, SmartCommunityRouterAPI, ClientMessageCode,ClientBufInfo, ClientSignalCode
+    from tool.gRPC.grpc_client import RpcClient
     app_id=0
 
-    cli = RemoteComClient()
-    cli.connect()
-    i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
-    ret = cli.send_formalized_message(app_id, i_message_type)
-    message = cli.read()
-    buf_arr = message['payload'].split('|')[:1]
-    existing_rule_arr = message['payload'].split('|')[2:]
-    print(existing_rule_arr)
+    local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
+    #cli.connect()
+    #i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
 
-    rule_arr = ['601:/Node/','602:/Hoge/','603:/FUGA/','604:/MIURA/','605:/TATSUKI/', '606:/KEIO/']
-    i_message_type = ClientMessageCode.BULK_RULE_INS.value
-    ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
-    message = cli.read()
+    first_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+    print(first_packet_id)
+    #ret = cli.send_formalized_message(app_id, i_message_type)
+    #message = cli.read()
+    #buf_arr = message['payload'].split('|')[:1]
+    #existing_rule_arr = message['payload'].split('|')[2:]
+    #print(existing_rule_arr)
 
-    cli.close()
+    #rule_arr = ['601:/Node/','602:/Hoge/','603:/FUGA/','604:/MIURA/','605:/TATSUKI/', '606:/KEIO/']
+    #i_message_type = ClientMessageCode.BULK_RULE_INS.value
+    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
+    #message = cli.read()
+
+    #cli.close()
 
 
 def sync():

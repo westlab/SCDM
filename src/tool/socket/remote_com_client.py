@@ -76,7 +76,6 @@ class SmartCommunityRouterAPI:
         i_message_type = ClientMessageCode.SERV_CHK_SIG.value
         ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
         msg = self._soc_cli.read()
-        print(msg)
         if int(msg['message_type']) is ClientMessageCode.SERV_CHK_SIG.value:
             return int(msg['payload'])
         else:
