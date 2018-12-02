@@ -1,5 +1,6 @@
 import socket
 from enum import Enum
+from time import sleep
 import pdb
 
 """
@@ -43,15 +44,25 @@ class SmartCommunityRouterAPI:
         self._soc_cli.connect()
 
     def get_app_info_dict(self, app_id):
+        counter = 0
         i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
-        ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
-        message = self._soc_cli.read()
-        info = { 
-                "buf_loc": message['payload'].split('|')[:1][0],
-                "sig_loc": message['payload'].split('|')[1:2][0],
-                "rules": message['payload'].split('|')[2:]
+        while (counter <= 1000):
+            print("get_app_info_loop")
+            ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
+            message = self._soc_cli.read()
+            pdb.set_trace()
+            if message['payload']:
+                info = { 
+                    "buf_loc": message['payload'].split('|')[:1][0],
+                    "sig_loc": message['payload'].split('|')[1:2][0],
+                    "rules": message['payload'].split('|')[2:]
                 }
-        return info
+                return info
+            else:
+                sleep(0.0001) # 100μs
+                counter+=1
+            return None
+
 
     def prepare_app_launch(self, buf, sig, rules):
         app_id = 0
@@ -78,9 +89,8 @@ class SmartCommunityRouterAPI:
         while (counter <= 1000):
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
             msg = self._soc_cli.read()
-            if int(msg['message_type']) is ClientMessageCode.SERV_CHK_SIG.value:
-                return int(msg['payload'])
-            sleep(0.00001) # wait for 10μs
+            #if int(msg['message_type']) is ClientMessageCode.SERV_CHK_SIG.value:
+            return int(msg['payload']) if int(msg['payload']) is not 0 else sleep(0.0001) # 100μs
             counter+=1
         return False
 
