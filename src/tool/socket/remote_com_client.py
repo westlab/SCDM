@@ -78,7 +78,7 @@ class SmartCommunityRouterAPI:
         app_id = 0
 
         message = self.get_message_from_scr(app_id, ClientMessageCode.DM_INIT_BUF.value, payload='/tmp/serv_buffer0')
-        dst_app = int(message['payload'])
+        dst_app_id = int(message['payload'])
         ret = self._soc_cli.send_formalized_message(dst_app_id, ClientMessageCode.BULK_RULE_INS.value, '|'.join(rules))
         message =self._soc_cli.read()
         return dst_app_id
