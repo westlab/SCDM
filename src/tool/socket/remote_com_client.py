@@ -47,7 +47,6 @@ class SmartCommunityRouterAPI:
         counter = 0
         i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
         while (counter <= 1000):
-            print("get_app_info_loop")
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
             message = self._soc_cli.read()
             if message['payload']:
@@ -65,16 +64,22 @@ class SmartCommunityRouterAPI:
 
     def prepare_app_launch(self, buf, sig, rules):
         app_id = 0
-        i_message_type = ClientMessageCode.DM_INIT_BUF.value
-        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload='/tmp/serv_buffer0')
-        dst_app_id = self._soc_cli.read()['payload']
+        counter = 0
+        init_done = False
 
-        i_message_type = ClientMessageCode.BULK_RULE_INS.value
-        ret = self._soc_cli.send_formalized_message(dst_app_id, i_message_type, '|'.join(rules))
+        while ( not init_done and counter <=1000):
+            ret = self._soc_cli.send_formalized_message(app_id, ClientMessageCode.DM_INIT_BUF.value, payload='/tmp/serv_buffer0')
+            message = self._soc_cli.read()
+            if message['payload']:
+                dst_app_id = int(message['payload'])
+                init_done = True
+            else:
+                sleep(0.0001) # 100μs
+                counter+=1
+        ret = self._soc_cli.send_formalized_message(dst_app_id, ClientMessageCode.BULK_RULE_INS.value, '|'.join(rules))
         message =self._soc_cli.read()
 
-        return int(dst_app_id)
-
+        return dst_app_id
 
     def prepare_for_checkpoint(self, app_id):
         i_message_type = ClientMessageCode.SERV_CHG_SIG.value
@@ -88,7 +93,6 @@ class SmartCommunityRouterAPI:
         while (counter <= 1000):
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
             msg = self._soc_cli.read()
-            #if int(msg['message_type']) is ClientMessageCode.SERV_CHK_SIG.value:
             return int(msg['payload']) if int(msg['payload']) is not 0 else sleep(0.0001) # 100μs
             counter+=1
         return False
