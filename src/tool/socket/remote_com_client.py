@@ -45,47 +45,42 @@ class SmartCommunityRouterAPI:
         self._soc_cli.connect()
 
     def has_no_error(self, message):
-        if int(message['message_type']) is ClientMessageCode.ERROR.value:
+        if  int(message['message_type']) is ClientMessageCode.ERROR.value:
             return False
         else:
             return True
 
+    def get_message_from_scr(self, app_id, message_type, payload=''):
+        counter = 0
+        try:
+            while (counter <= 100):
+                ret = self._soc_cli.send_formalized_message(app_id, message_type, payload)
+                message = self._soc_cli.read()
+                if (self.has_no_error(message)):
+                    return message
+                else:
+                    sleep(0.0001) # 100μs
+                    counter+=1
+            raise Exception("Check whether manager is running")
+        except Exception as inst:
+            print(inst)
 
     def get_app_info_dict(self, app_id):
-        counter = 0
-        i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
-        while (counter <= 1000):
-            ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
-            message = self._soc_cli.read()
-            if (self.has_no_error(message)):
-                info = { 
-                    "buf_loc": message['payload'].split('|')[:1][0],
-                    "sig_loc": message['payload'].split('|')[1:2][0],
-                    "rules": message['payload'].split('|')[2:]
-                }
-                return info
-            else:
-                sleep(0.0001) # 100μs
-                counter+=1
-        return None 
+        message = self.get_message_from_scr(app_id, ClientMessageCode.DM_ASK_APP_INFO.value)
+        buf_info = { 
+            "buf_loc": message['payload'].split('|')[:1][0],
+            "sig_loc": message['payload'].split('|')[1:2][0],
+            "rules": message['payload'].split('|')[2:]
+        }
+        return buf_info
 
     def prepare_app_launch(self, buf, sig, rules):
         app_id = 0
-        counter = 0
-        init_done = False
 
-        while ( not init_done and counter <=1000):
-            ret = self._soc_cli.send_formalized_message(app_id, ClientMessageCode.DM_INIT_BUF.value, payload='/tmp/serv_buffer0')
-            message = self._soc_cli.read()
-            if (self.has_no_error(message)):
-                dst_app_id = int(message['payload'])
-                init_done = True
-            else:
-                sleep(0.0001) # 100μs
-                counter+=1
+        message = self.get_message_from_scr(app_id, ClientMessageCode.DM_INIT_BUF.value, payload='/tmp/serv_buffer0')
+        dst_app = int(message['payload'])
         ret = self._soc_cli.send_formalized_message(dst_app_id, ClientMessageCode.BULK_RULE_INS.value, '|'.join(rules))
         message =self._soc_cli.read()
-
         return dst_app_id
 
     def prepare_for_checkpoint(self, app_id):
@@ -95,17 +90,8 @@ class SmartCommunityRouterAPI:
         return message
 
     def check_status(self, app_id):
-        i_message_type = ClientMessageCode.SERV_CHK_SIG.value
-        counter = 0
-        while (counter <= 1000):
-            ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
-            msg = self._soc_cli.read()
-            if self.has_no_error(msg) and int(msg['payload']) is not 0:
-                return int(msg['payload'])
-            else:
-                sleep(0.0001) # 100μs
-                counter+=1
-        return False
+        message = self.get_message_from_scr(app_id, ClientMessageCode.SERV_CHK_SIG.value, payload=str(ClientSignalCode.SRC_WAITING.value))
+        return int(message['payload'])
 
     def update_buf_read_offset(self, app_id, s_packet_ids):
         i_message_type = ClientMessageCode.SERV_CHG_APP_BUF_R_OFFSET.value
@@ -136,9 +122,9 @@ class RemoteComClient:
         self.socket.connect(self.socket_path)
 
     def send(self, message):
-        print("=========send===============")
-        print(message.encode())
-        print("========================")
+        #print("=========send===============")
+        #print(message.encode())
+        #print("========================")
         self.socket.send(message.encode())
 
     def close(self):
@@ -163,8 +149,6 @@ class RemoteComClient:
     def read(self):
         data = self.socket.recv(RemoteComClient.BUFFER_SIZE)
         message = self.interpret_message(data)
-        #print("============================data=======================================")
-        #print(message)
         return message
     """
     Formalize a message passing to vnf_platform
