@@ -272,10 +272,9 @@ class MigrationWorker:
 
         # Check signal status
         print('check status')
-        is_ready=False
-        while (not is_ready):
-            is_ready = local_rpc_cli.check_status(app_id)
-            print(is_ready)
+        is_ready = local_rpc_cli.check_status(app_id)
+        if is_ready is False:
+            return self.returned_data_creator('check_status', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
 
         # Checkpoint
         print("==============checkpoint==============")
@@ -371,6 +370,9 @@ class MigrationWorker:
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'checkpoint':
             data["message"] = "cannot checkpoint"
+            return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
+        elif func_name is 'check_status':
+            data["message"] = "cannot check status, check destination node is running"
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'volume':
             data["message"] = "cannot volume"

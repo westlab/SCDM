@@ -74,12 +74,15 @@ class SmartCommunityRouterAPI:
 
     def check_status(self, app_id):
         i_message_type = ClientMessageCode.SERV_CHK_SIG.value
-        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
-        msg = self._soc_cli.read()
-        if int(msg['message_type']) is ClientMessageCode.SERV_CHK_SIG.value:
-            return int(msg['payload'])
-        else:
-            return False
+        counter = 0
+        while (counter <= 1000):
+            ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
+            msg = self._soc_cli.read()
+            if int(msg['message_type']) is ClientMessageCode.SERV_CHK_SIG.value:
+                return int(msg['payload'])
+            sleep(0.00001) # wait for 10μs
+            counter+=1
+        return False
 
     def update_buf_read_offset(self, app_id, s_packet_ids):
         i_message_type = ClientMessageCode.SERV_CHG_APP_BUF_R_OFFSET.value
