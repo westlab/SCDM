@@ -45,7 +45,10 @@ class SmartCommunityRouterAPI:
         self._soc_cli.connect()
 
     def has_no_error(self, message):
-        return True if int(message['message_type']) is not 18 else False
+        if int(message['message_type']) is ClientMessageCode.ERROR.value:
+            return False
+        else:
+            return True
 
 
     def get_app_info_dict(self, app_id):
@@ -55,7 +58,7 @@ class SmartCommunityRouterAPI:
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
             pdb.set_trace()
             message = self._soc_cli.read()
-            if self.has_no_error(message):
+            if (self.has_no_error(message)):
                 info = { 
                     "buf_loc": message['payload'].split('|')[:1][0],
                     "sig_loc": message['payload'].split('|')[1:2][0],
@@ -76,7 +79,7 @@ class SmartCommunityRouterAPI:
         while ( not init_done and counter <=1000):
             ret = self._soc_cli.send_formalized_message(app_id, ClientMessageCode.DM_INIT_BUF.value, payload='/tmp/serv_buffer0')
             message = self._soc_cli.read()
-            if self.has_no_error(message):
+            if (self.has_no_error(message)):
                 dst_app_id = int(message['payload'])
                 init_done = True
             else:
