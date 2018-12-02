@@ -56,7 +56,6 @@ class SmartCommunityRouterAPI:
         i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
         while (counter <= 1000):
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type)
-            pdb.set_trace()
             message = self._soc_cli.read()
             if (self.has_no_error(message)):
                 info = { 
@@ -68,8 +67,7 @@ class SmartCommunityRouterAPI:
             else:
                 sleep(0.0001) # 100μs
                 counter+=1
-            return None
-
+        return None 
 
     def prepare_app_launch(self, buf, sig, rules):
         app_id = 0
@@ -102,7 +100,6 @@ class SmartCommunityRouterAPI:
         while (counter <= 1000):
             ret = self._soc_cli.send_formalized_message(app_id, i_message_type, payload=str(ClientSignalCode.SRC_WAITING.value))
             msg = self._soc_cli.read()
-            pdb.set_trace()
             if self.has_no_error(msg) and int(msg['payload']) is not 0:
                 return int(msg['payload'])
             else:
