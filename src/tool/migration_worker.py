@@ -13,8 +13,11 @@ from tool.docker.docker_layer import DockerLayer
 from tool.docker.docker_container_extraction import DockerContainerExtraction
 from tool.docker.docker_container_extraction import DockerVolume
 from tool.gRPC.grpc_client import RpcClient
-from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
+from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo, ScrDirection
+
+# for data consistency migration
 from tool.redis.redis_client import RedisClient
+from tool.common.extensions.rdict import rdict
 
 # For evaluation
 from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst, ConservativeMigrationConst
@@ -293,9 +296,11 @@ class MigrationWorker:
         # Reload daemon
         code = remote_rpc_cli.reload_daemon()
 
-        ## Update application buffer read offset
-        #s_last_packet_ids =  [ b_id.decode('utf-8') for b_id in redis_cli.hvals(app_id)]
-        #code = remote_rpc_cli.update_buf_read_offset(app_id, s_last_packet_ids)
+        # Update application buffer read offset
+        #rd = rdict(redis_cli.hgetall(app_id))
+        #C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_addr)][0]}
+        #S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_addr)][0]}
+        #code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
 
         # Restore
         code = remote_rpc_cli.restore(self._c_name)
