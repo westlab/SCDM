@@ -297,10 +297,10 @@ class MigrationWorker:
         code = remote_rpc_cli.reload_daemon()
 
         # Update application buffer read offset
-        #rd = rdict(redis_cli.hgetall(app_id))
-        #C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_addr)][0]}
-        #S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_addr)][0]}
-        #code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
+        rd = rdict(redis_cli.hgetall(app_id))
+        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_addr)][0]}
+        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_addr)][0]}
+        code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
 
         # Restore
         code = remote_rpc_cli.restore(self._c_name)

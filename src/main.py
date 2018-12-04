@@ -152,7 +152,6 @@ def cli_soc():
     print(packets)
     code = local_rpc_cli.update_buf_read_offset(app_id, packets)
 
-    local_rpc_cli.close()
 
 def sync():
     from tool.docker.docker_layer import DockerLayer
