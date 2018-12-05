@@ -120,7 +120,8 @@ def run_with_scr():
     version = 'latest'
 
     ports =[]
-    dst_addr = '10.24.12.143' # miura-router3
+    #dst_addr = '10.24.12.143' # miura-router3
+    dst_addr = '10.24.12.141' # miura-router1
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))

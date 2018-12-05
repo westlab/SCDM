@@ -237,7 +237,8 @@ class MigrationWorker:
         local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
         dst_first_packet_id =0
         src_last_packet_id =0
-        dst_local_addr = "192.168.3.33" # sensor 3
+        #dst_local_addr = "192.168.3.33" # sensor 3
+        dst_local_addr = "10.10.0.11" # sensor 3
 
         redis_cli = RedisClient()
 
@@ -298,8 +299,8 @@ class MigrationWorker:
 
         # Update application buffer read offset
         rd = rdict(redis_cli.hgetall(app_id))
-        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_addr)][0]}
-        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_addr)][0]}
+        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
+        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
         code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
 
         # Restore
