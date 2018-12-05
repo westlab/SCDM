@@ -13,8 +13,11 @@ from tool.docker.docker_layer import DockerLayer
 from tool.docker.docker_container_extraction import DockerContainerExtraction
 from tool.docker.docker_container_extraction import DockerVolume
 from tool.gRPC.grpc_client import RpcClient
-from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
+from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo, ScrDirection
+
+# for data consistency migration
 from tool.redis.redis_client import RedisClient
+from tool.common.extensions.rdict import rdict
 
 # For evaluation
 from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst, ConservativeMigrationConst
@@ -234,6 +237,8 @@ class MigrationWorker:
         local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
         dst_first_packet_id =0
         src_last_packet_id =0
+        #dst_local_addr = "192.168.3.33" # sensor 3
+        dst_local_addr = "10.10.0.11" # sensor 3
 
         redis_cli = RedisClient()
 
@@ -245,13 +250,9 @@ class MigrationWorker:
         dst_app_id = remote_rpc_cli.prepare_app_launch(app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
 
         ### check src and dst buffer
-        counter=0
-        while (not bool(dst_first_packet_id)):
-            dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
-        while (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
-            counter+=1
-            if counter >= 100:
-                return self.returned_data_creator('create')
+        dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+        if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
+            return self.returned_data_creator('create')
 
         ####  request ready for checkpoint
         # del buffer
@@ -260,12 +261,9 @@ class MigrationWorker:
 
         # check whether last src packet is arrived at dst node
         counter=0
-        while (not bool(src_last_packet_id)):
-            src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
-        while(not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
-            counter+=1
-            if counter >= 100:
-                return self.returned_data_creator('create')
+        src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
+        if (not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
+            return self.returned_data_creator('create')
 
         # Inspect Images
         code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
@@ -299,9 +297,11 @@ class MigrationWorker:
         # Reload daemon
         code = remote_rpc_cli.reload_daemon()
 
-        ## Update application buffer read offset
-        #s_last_packet_ids =  [ b_id.decode('utf-8') for b_id in redis_cli.hvals(app_id)]
-        #code = remote_rpc_cli.update_buf_read_offset(app_id, s_last_packet_ids)
+        # Update application buffer read offset
+        rd = rdict(redis_cli.hgetall(app_id))
+        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
+        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
+        code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
 
         # Restore
         code = remote_rpc_cli.restore(self._c_name)

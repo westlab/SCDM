@@ -44,7 +44,6 @@ def debug():
     remote_rpc_cli.ping()
     dst_first_packet_id = remote_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
     print(dst_first_packet_id)
-    #print("========packet_arrival==========")
     print(local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))
     print("========get last buffer info==========")
     src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
@@ -121,7 +120,8 @@ def run_with_scr():
     version = 'latest'
 
     ports =[]
-    dst_addr = '10.24.12.141' # miura-router1 
+    #dst_addr = '10.24.12.143' # miura-router3
+    dst_addr = '10.24.12.141' # miura-router1
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
@@ -135,28 +135,23 @@ def codegen():
     codegen.run()
 
 def cli_soc():
-    from tool.socket.remote_com_client import RemoteComClient, SmartCommunityRouterAPI, ClientMessageCode,ClientBufInfo, ClientSignalCode
+    from tool.socket.remote_com_client import RemoteComClient, SmartCommunityRouterAPI, ClientMessageCode,ClientBufInfo, ClientSignalCode, ScrDirection
+    from tool.redis.redis_client import RedisClient
     from tool.gRPC.grpc_client import RpcClient
+    from tool.common.extensions.rdict import rdict
+
     app_id=0
+    dst_addr = "127.0.0.1"
+    addr = "192.168.3.33"
 
-    local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
-    #cli.connect()
-    #i_message_type = ClientMessageCode.DM_ASK_APP_INFO.value
-
-    first_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
-    print(first_packet_id)
-    #ret = cli.send_formalized_message(app_id, i_message_type)
-    #message = cli.read()
-    #buf_arr = message['payload'].split('|')[:1]
-    #existing_rule_arr = message['payload'].split('|')[2:]
-    #print(existing_rule_arr)
-
-    #rule_arr = ['601:/Node/','602:/Hoge/','603:/FUGA/','604:/MIURA/','605:/TATSUKI/', '606:/KEIO/']
-    #i_message_type = ClientMessageCode.BULK_RULE_INS.value
-    #ret = cli.send_formalized_message(app_id, i_message_type, '|'.join(rule_arr))
-    #message = cli.read()
-
-    #cli.close()
+    local_rpc_cli = RpcClient(dst_addr=dst_addr)
+    redis_cli = RedisClient()
+    rd = rdict(redis_cli.hgetall(app_id))
+    C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, addr)][0]}
+    S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, addr)][0]}
+    packets = [C2S_info, S2C_info]
+    print(packets)
+    code = local_rpc_cli.update_buf_read_offset(app_id, packets)
 
 
 def sync():

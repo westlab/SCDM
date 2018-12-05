@@ -37,6 +37,11 @@ class ClientBufInfo(Enum):
     BUF_FIRST=0
     BUF_LAST=1
 
+class ScrDirection(Enum):
+    NEW=0
+    C2S=1
+    S2C=2
+
 class SmartCommunityRouterAPI:
     def __init__(self):
         self._soc_cli = RemoteComClient()
@@ -93,10 +98,9 @@ class SmartCommunityRouterAPI:
         message = self.get_message_from_scr(app_id, ClientMessageCode.SERV_CHK_SIG.value, payload=str(ClientSignalCode.SRC_WAITING.value))
         return int(message['payload'])
 
-    def update_buf_read_offset(self, app_id, s_packet_ids):
-        i_message_type = ClientMessageCode.SERV_CHG_APP_BUF_R_OFFSET.value
-        ret = self._soc_cli.send_formalized_message(app_id, i_message_type, '|'.join(s_packet_ids))
-        message = self._soc_cli.read()
+    def update_buf_read_offset(self, app_id, packets):
+        payload= '|'.join(['{0}-{1}'.format(ele.direction, ele.packet_id) for ele in packets])
+        message = self.get_message_from_scr(app_id, ClientMessageCode.SERV_CHG_APP_BUF_R_OFFSET.value, payload=payload)
         return True
 
     def get_buf_info(self, app_id, kind):

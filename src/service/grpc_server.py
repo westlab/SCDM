@@ -227,7 +227,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     """
     def UpdateBufReadOffset(self, req, context):
         self._logger.info("Update buffer read offset")
-        code = self._scr_cli.update_buf_read_offset(req.app_id, req.s_packet_ids)
+        code = self._scr_cli.update_buf_read_offset(req.app_id, req.packets)
         return docker_migration_pb2.Status(code=code)
 
     def GetBufInfo(self, req, context):

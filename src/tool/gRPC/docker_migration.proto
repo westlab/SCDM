@@ -23,7 +23,7 @@ service  DockerMigrator {
     rpc PrepareForCheckpoint(SessionInfo) returns (Status) {}
     rpc CheckStatus(SessionInfo) returns (Status) {}
     rpc GetAppInfo(SessionInfo) returns (AppInfo) {}
-    rpc UpdateBufReadOffset (SessionInfo) returns (Status) {}
+    rpc UpdateBufReadOffset (PacketInfo) returns (Status) {}
     rpc GetBufInfo (BufInfo) returns (Status) {}
     rpc CheckPacketArrival (BufInfo) returns (Status) {}
     rpc RequestMigration (DockerSummary) returns (stream Status) {}
@@ -100,6 +100,16 @@ message AppInfo {
 message SessionInfo {
     int32 app_id = 1;
     repeated string s_packet_ids = 2;
+}
+
+message PacketInfo {
+    int32 app_id = 1;
+    repeated Packet packets = 2;
+}
+
+message Packet {
+    int32 direction = 1;
+    int32 packet_id = 2;
 }
 
 message BufInfo {
