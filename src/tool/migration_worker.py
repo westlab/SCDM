@@ -279,7 +279,6 @@ class MigrationWorker:
 
         # check whether last src packet is arrived at dst node
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
-        local_rpc_cli.prepare_for_checkpoint(app_id)
         src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
         if (not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
             return self.returned_data_creator('create')
