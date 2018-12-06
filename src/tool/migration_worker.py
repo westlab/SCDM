@@ -20,9 +20,10 @@ from tool.redis.redis_client import RedisClient
 from tool.common.extensions.rdict import rdict
 
 # For evaluation
-from tool.common.time_recorder import TimeRecorder, ProposedMigrationConst, ConservativeMigrationConst, DataConsistencyMigrationConst
-from tool.common.resource_recorder import ResourceRecorder
-from tool.common.disk_recorder import DiskRecorder
+from tool.common.eval.time_recorder import TimeRecorder, ProposedMigrationConst, ConservativeMigrationConst, DataConsistencyMigrationConst
+from tool.common.eval.resource_recorder import ResourceRecorder
+from tool.common.eval.disk_recorder import DiskRecorder
+from tool.common.eval.duplication_checker import DuplicationChecker
 
 class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
@@ -243,9 +244,10 @@ class MigrationWorker:
         dst_local_addr = "10.10.0.11" # sensor 3
         redis_cli = RedisClient()
 
-        d_recorder = DiskRecorder('prop_{0}_{1}'.format(self._bandwidth, self._c_name))
-        t_recorder = TimeRecorder('prop_{0}_{1}'.format(self._bandwidth, self._c_name), migration_type="dcm")
-        r_recorder = ResourceRecorder('prop_{0}_{1}'.format(self._bandwidth, self._c_name))
+        d_recorder = DiskRecorder('dcm_{0}_{1}'.format(self._bandwidth, self._c_name))
+        t_recorder = TimeRecorder('dcm_{0}_{1}'.format(self._bandwidth, self._c_name), migration_type="dcm")
+        r_recorder = ResourceRecorder('dcm_{0}_{1}'.format(self._bandwidth, self._c_name))
+        dupli_cheker = DuplicationChecker(dst_addr=self._m_opt['dst_addr'])
 
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
@@ -347,10 +349,16 @@ class MigrationWorker:
         if code != CODE_SUCCESS:
             return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
 
+        # Write data
         t_recorder.write()
         r_recorder.write()
         d_recorder.track_all(self._d_c_extractor)
         d_recorder.write()
+
+
+        print('check data consistency')
+        dupli_cheker.run()
+
         return self.returned_data_creator('fin')
 
     """
