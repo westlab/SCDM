@@ -246,7 +246,7 @@ class MigrationWorker:
         d_recorder = DiskRecorder('dcm_{0}_{1}'.format(self._packet_rate, self._c_name))
         t_recorder = TimeRecorder('dcm_{0}_{1}'.format(self._packet_rate, self._c_name), migration_type="dcm")
         r_recorder = ResourceRecorder('dcm_{0}_{1}'.format(self._packet_rate, self._c_name))
-        buf_logger = BufferLogger('dcm_{0}_{1}'.format(self._packet_rate, self._c_name, dst_addr=self._m_opt['dst_addr']))
+        buf_logger = BufferLogger('dcm_{0}_{1}'.format(self._packet_rate, self._c_name),dst_addr=self._m_opt['dst_addr'])
 
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()

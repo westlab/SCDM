@@ -16,7 +16,7 @@ class BufferLogger:
     DEFAULT_OUTPUT_PATH = "/home/miura/p/SCDM/logs/recorders"
     DST_LOG_FILE_PATH = "/tmp/dst_processed_packets.log"
 
-    def __init__(self, dst_addr, name): 
+    def __init__(self, name, dst_addr): 
         self._dst_addr = dst_addr
 
         dupli_checker_file = '{name}_dupli_checker_{time}.csv'.format(name=name, time=datetime.now().strftime('%Y%m%d_%H%M%S'))
