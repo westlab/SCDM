@@ -64,17 +64,21 @@ class BufferLogger:
             print("id: {0}, total: {1} okay".format(i,j))
         return True
 
-    def write(self, file_name, data):
+    def write_csv(self, file_name, data):
         with open(str(file_name), 'a') as f:
             writer = csv.writer(f)
             writer.writerow(data)
+
+    def write(self, file_name, data):
+        with open(str(file_name), 'a') as f:
+            f.write(data)
 
     def run(self):
         self.get_dst_log_file()
         self.convert_csv_to_dict(Direction.src.value)
         self.convert_csv_to_dict(Direction.dst.value)
         has_no_dupli =  self.compare_duplication()
-        self.write(self._dupli_checker_file_path, has_no_dupli)
+        self.write(self._dupli_checker_file_path, str(has_no_dupli))
 
 
 
