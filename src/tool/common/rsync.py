@@ -29,7 +29,7 @@ class Rsync:
         cmd = "sshpass -p {passwd} rsync -ahvr --safe-links -e ssh {s_arg} {d_arg}".format(passwd=config['dst_host']['password'], s_arg=s_arg, d_arg=d_arg)
         #cmd = "sshpass -p {passwd} rsync -avzr -e ssh {s_arg} {d_arg}".format(passwd=config['dst_host']['password'], s_arg=s_arg, d_arg=d_arg)
         try:
-            print(cmd)
+            #print(cmd)
             sp.run(cmd.strip().split(" "), check=True)
             return True
         except Exception as e:

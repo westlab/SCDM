@@ -19,6 +19,7 @@ parser.add_argument('conf',
 parser.add_argument('image_name',type=str, help='image name', default='busybox')
 parser.add_argument('container_name',type=str, help='container name', default='cr_test1')
 parser.add_argument('bandwidth',type=int, help='bandwdith', default=0)
+parser.add_argument('packet_rate',type=int, help='bandwdith', default=1)
 args = parser.parse_args()
 config = configparser.ConfigParser()
 config.read(args.conf)
@@ -31,11 +32,11 @@ docker_api.login()
 def debug():
     from tool.redis.redis_client import RedisClient
     from tool.gRPC.grpc_client import RpcClient
-    from tool.common.eval.duplication_checker import DuplicationChecker
+    from tool.common.eval.buffer_logger import BufferLogger 
     from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
 
     dst_addr = '10.24.12.141' # miura-router1 
-    checker = DuplicationChecker('hoge', dst_addr)
+    checker = BufferLogger(dst_addr, "hoge")
     checker.run()
 
     print('fin')
@@ -115,7 +116,7 @@ def run_with_scr():
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
     worker = MigrationWorker(cli=docker_api,
                              i_name=args.image_name, version=version, c_name=args.container_name,
-                             m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
+                             m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth, packet_rate=args.packet_rate)
     data = worker.run_with_scr()
 
 def codegen():

@@ -23,13 +23,13 @@ from tool.common.extensions.rdict import rdict
 from tool.common.eval.time_recorder import TimeRecorder, ProposedMigrationConst, ConservativeMigrationConst, DataConsistencyMigrationConst
 from tool.common.eval.resource_recorder import ResourceRecorder
 from tool.common.eval.disk_recorder import DiskRecorder
-from tool.common.eval.duplication_checker import DuplicationChecker
+from tool.common.eval.buffer_logger import BufferLogger
 
 class MigrationWorker:
     TOTAL_STREAM_COUNT = 2
     ORDER_OF_REQUEST_MIGRATION = 2
 
-    def __init__(self, cli, i_name, version, c_name, m_opt, c_opt, bandwidth=0, packet_size=0, packet_rate=0):
+    def __init__(self, cli, i_name, version, c_name, m_opt, c_opt, bandwidth=0, packet_rate=0):
         config = configparser.ConfigParser()
         config.read(DOCKER_BASIC_SETTINGS_PATH)
         i_layer_manager = DockerLayer()
@@ -47,7 +47,6 @@ class MigrationWorker:
         self._m_opt = m_opt
         self._c_opt = c_opt
         self._bandwidth = bandwidth
-        self._packet_size = packet_size
         self._packet_rate = packet_rate
 
     """
@@ -244,10 +243,10 @@ class MigrationWorker:
         dst_local_addr = "10.10.0.11" # sensor 3
         redis_cli = RedisClient()
 
-        d_recorder = DiskRecorder('dcm_{0}_{1}'.format(self._bandwidth, self._c_name))
-        t_recorder = TimeRecorder('dcm_{0}_{1}'.format(self._bandwidth, self._c_name), migration_type="dcm")
-        r_recorder = ResourceRecorder('dcm_{0}_{1}'.format(self._bandwidth, self._c_name))
-        dupli_cheker = DuplicationChecker(dst_addr=self._m_opt['dst_addr'])
+        d_recorder = DiskRecorder('dcm_{0}_{1}'.format(self._packet_rate, self._c_name))
+        t_recorder = TimeRecorder('dcm_{0}_{1}'.format(self._packet_rate, self._c_name), migration_type="dcm")
+        r_recorder = ResourceRecorder('dcm_{0}_{1}'.format(self._packet_rate, self._c_name))
+        buf_logger = BufferLogger('dcm_{0}_{1}'.format(self._packet_rate, self._c_name, dst_addr=self._m_opt['dst_addr']))
 
         r_recorder.insert_init_cond()
         r_recorder.track_on_subp()
@@ -357,7 +356,7 @@ class MigrationWorker:
 
 
         print('check data consistency')
-        dupli_cheker.run()
+        buf_logger.run()
 
         return self.returned_data_creator('fin')
 
