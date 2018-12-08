@@ -59,7 +59,7 @@ class BufferLogger:
                 if  j is self._dup_counter[i][j]:
                     continue
                 else:
-                    print("id: {0}, counter: {1}".fomart(i,j))
+                    print("id: {0}, counter: {1}".format(i,j))
                     return False
             print("id: {0}, total: {1} okay".format(i,j))
         return True
