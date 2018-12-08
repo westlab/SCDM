@@ -239,8 +239,8 @@ class MigrationWorker:
         local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
         dst_first_packet_id =0
         src_last_packet_id =0
-        #dst_local_addr = "192.168.3.33" # sensor 3
-        dst_local_addr = "10.10.0.11" # sensor 3
+        dst_local_addr = "192.168.3.33" # sensor 3
+        #dst_local_addr = "10.10.0.11" # sensor 3
         redis_cli = RedisClient()
 
         d_recorder = DiskRecorder('dcm_{0}_{1}'.format(self._packet_rate, self._c_name))
