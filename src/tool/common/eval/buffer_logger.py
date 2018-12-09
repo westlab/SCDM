@@ -20,14 +20,11 @@ class BufferLogger:
         self._dst_addr = dst_addr
 
         dupli_checker_file = '{name}_dupli_checker_{time}.csv'.format(name=name, time=datetime.now().strftime('%Y%m%d_%H%M%S'))
-        buf_log_file = '{name}_buf_logger_{time}.csv'.format(name=name, time=datetime.now().strftime('%Y%m%d_%H%M%S'))
 
         self._base_file_path = Path(self.DEFAULT_LOG_FILE_PATH)
         self._dst_log_file_path = Path(self.DST_LOG_FILE_PATH)
         self._dupli_checker_file_path = Path(self.DEFAULT_OUTPUT_PATH + '/' + dupli_checker_file)
-        self._buf_log_file_path = Path(self.DEFAULT_OUTPUT_PATH + '/' + buf_log_file)
         self._dup_counter = { 1: [], 2: [], 3:[]}
-        self._buf_logger = {"src_w": [], "scr_r": [], "dst_w": [], "dst_r":[] }
 
     def get_dst_log_file(self):
         dst_path = str(self._base_file_path)
@@ -39,27 +36,28 @@ class BufferLogger:
         with open(log_data, "r") as f:
             reader = csv.reader(f)
             for row in reader:
-                dic = {}
-                dic['direction'] = row[0]
-                dic['w_buf'] = row[2]
-                dic['r_buf'] = row[3]
+                #dic = {}
+                #dic['direction'] = row[0]
+                #dic['w_buf'] = row[2]
+                #dic['r_buf'] = row[3]
 
-                msg = ','.join(row[4:])
-                json_data = json.loads(msg)
+                #msg = ','.join(row[4:])
+                #json_data = json.loads(msg)
 
-                dic['id'] = json_data['id']
-                dic['counter'] = json_data['counter']
-                self._dup_counter[dic['id']].append(dic['counter'])
+                #dic['id'] = json_data['id']
+                #dic['counter'] = json_data['counter']
+                self._dup_counter[int(row[6])].append(int(row[4]))
 
     def compare_duplication(self):
         has_dupli = False
-        for i in range(1, len(self._dup_counter)):
+        for i in range(1, len(self._dup_counter)+1):
             j = 0
+            print(self._dup_counter[i])
             for j in range(len(self._dup_counter[i])):
                 if  j is self._dup_counter[i][j]:
                     continue
                 else:
-                    print("id: {0}, counter: {1}".format(i,j))
+                    print("error: id: {0}, counter: {1}".format(i,j))
                     return False
             print("id: {0}, total: {1} okay".format(i,j))
         return True
