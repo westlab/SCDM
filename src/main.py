@@ -19,6 +19,7 @@ parser.add_argument('conf',
 parser.add_argument('image_name',type=str, help='image name', default='busybox')
 parser.add_argument('container_name',type=str, help='container name', default='cr_test1')
 parser.add_argument('bandwidth',type=int, help='bandwdith', default=0)
+parser.add_argument('packet_rate',type=int, help='bandwdith', default=1)
 args = parser.parse_args()
 config = configparser.ConfigParser()
 config.read(args.conf)
@@ -31,25 +32,13 @@ docker_api.login()
 def debug():
     from tool.redis.redis_client import RedisClient
     from tool.gRPC.grpc_client import RpcClient
+    from tool.common.eval.buffer_logger import BufferLogger 
     from tool.socket.remote_com_client import SmartCommunityRouterAPI, ClientMessageCode, ClientMessageCode, RemoteComClient, ClientBufInfo
 
     dst_addr = '10.24.12.141' # miura-router1 
-    local_rpc_cli = RpcClient()#dst_addr=dst_addr)
-    remote_rpc_cli = RpcClient(dst_addr=dst_addr)
-    redis = RedisClient()
+    checker = BufferLogger(dst_addr, "hoge")
+    checker.run()
 
-    app_id = 0
-    print("========get_buf_info==========")
-    local_rpc_cli.ping()
-    remote_rpc_cli.ping()
-    dst_first_packet_id = remote_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
-    print(dst_first_packet_id)
-    print(local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))
-    print("========get last buffer info==========")
-    src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
-    print(src_last_packet_id)
-    print("========packet_arrival==========")
-    print(remote_rpc_cli.check_packet_arrival(app_id, src_last_packet_id))  #in this case packet_id
     print('fin')
 
 def rest_server():
@@ -120,14 +109,14 @@ def run_with_scr():
     version = 'latest'
 
     ports =[]
-    #dst_addr = '10.24.12.143' # miura-router3
-    dst_addr = '10.24.12.141' # miura-router1
+    dst_addr = '10.24.12.143' # miura-router3
+    #dst_addr = '10.24.12.141' # miura-router1
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
     worker = MigrationWorker(cli=docker_api,
                              i_name=args.image_name, version=version, c_name=args.container_name,
-                             m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth)
+                             m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth, packet_rate=args.packet_rate)
     data = worker.run_with_scr()
 
 def codegen():
