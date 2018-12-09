@@ -14,15 +14,16 @@ fi
 COUNTER=5
 TMP_NUM=0
 BANDWIDTH_UNIT="Mbit"
+DST_ADDR=192.168.1.1
 
 start_container() {
   #1st image_name
   #2nd container_name
   #3nd metor
   echo "start container $2"
-  if [ $1 = "tatsuki/door_app" ]; then
+  if [ $1 = "tatsuki923/loop_app" ]; then
     #docker run -d --name $2 --ipc=host -v /tmp/:/tmp/ $1 sh -c './service_api/client'
-    docker run -d --name $2 --ipc=host -v /tmp/:/tmp/ $1 sh -c 'i=0; while true; do echo $i; i=$(expr $i + 1); sleep 1; done'
+    docker run -d --name $2 --ipc=host $1 sh -c 'i=0; while true; do echo $i; i=$(expr $i + 1); sleep 1; done'
   elif [ $1 = "busybox" ]; then
     docker run --name $2 -d $1 sh -c 'i=0; while true; do echo $i; i=$(expr $i + 1); sleep 1; done'
   elif [ $1 = "elasticsearch" ]; then
@@ -33,7 +34,7 @@ start_container() {
   fi
 
   if [ $3 = "con" ]; then
-    sshpass -p dkw9srmd ssh miura@192.168.11.2 docker run --name repo -d -p 5000:5000 registry:2
+    sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker run --name repo -d -p 5000:5000 registry:2
   fi
 }
 
@@ -44,7 +45,7 @@ delete_src_container() {
 
 delete_dst_container() {
   #1st container_name
-  sshpass -p dkw9srmd ssh miura@192.168.11.2 docker rm -f $1
+  sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker rm -f $1
 }
 
 delete_containers() {
@@ -54,13 +55,13 @@ delete_containers() {
   #delete_dst_container $1
 
   if [ $2 = "con" ]; then
-    docker rmi -f $(docker images --filter=reference="192.168.11.2:5000/*" -q)
+    docker rmi -f $(docker images --filter=reference="${DST_ADDR}:5000/*" -q)
     sudo systemctl restart docker
-    sshpass -p dkw9srmd ssh miura@192.168.11.2 docker rmi -f $(sshpass -p dkw9srmd ssh miura@192.168.11.2 docker images --filter=reference="localhost:5000/*" -q)
+    sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker rmi -f $(sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker images --filter=reference="localhost:5000/*" -q)
 
     echo 'stop repo on dst'
-    sshpass -p dkw9srmd ssh miura@192.168.11.2 docker stop repo
-    sshpass -p dkw9srmd ssh miura@192.168.11.2 docker rm repo
+    sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker stop repo
+    sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker rm repo
   fi
 }
 
@@ -71,9 +72,9 @@ run() {
   #4th bandwidth
   echo "run worker"
   if [ $1 = "prop" ]; then
-    sudo python ./src/main.py run_prop ./conf/production.ini $2 $3 $4
+    sudo python ./src/main.py run_prop ./conf/production.ini $2 $3 $4 0
   elif [ $1 = "con" ]; then
-    sudo python ./src/main.py run_con ./conf/production.ini $2 $3 $4
+    sudo python ./src/main.py run_con ./conf/production.ini $2 $3 $4 0
   else
     echo "Please input valid migration metor"
     exit 1
@@ -82,12 +83,12 @@ run() {
 
 change_network_bandwidth() {
   echo "set network bandwidth"
-  sudo tc qdisc add dev enp3s0 root tbf limit $1 buffer 200Kb rate $1
+  sudo tc qdisc add dev enp2s0 root tbf limit $1 buffer 200Kb rate $1
 }
 
 release_network_setting (){
   echo "release network bandwidth settings"
-  sudo tc qdisc del dev enp3s0 root
+  sudo tc qdisc del dev enp2s0 root
 }
 
 release_network_setting

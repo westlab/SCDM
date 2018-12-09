@@ -75,7 +75,7 @@ def run_prop():
     version = 'latest'
 
     ports =[]
-    dst_addr = '192.168.11.2'
+    dst_addr = '192.168.1.1'
     host = 'miura'
     checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
     migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
