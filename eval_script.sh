@@ -14,7 +14,7 @@ fi
 COUNTER=5
 TMP_NUM=0
 BANDWIDTH_UNIT="Mbit"
-DST_ADDR=192.168.1.1
+DST_ADDR=192.168.1.3
 
 start_container() {
   #1st image_name
@@ -57,7 +57,7 @@ delete_containers() {
   if [ $2 = "con" ]; then
     docker rmi -f $(docker images --filter=reference="${DST_ADDR}:5000/*" -q)
     sudo systemctl restart docker
-    sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker rmi -f $(sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker images --filter=reference="localhost:5000/*" -q)
+    sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker rmi -f $(sshpass -p dkw9srmd ssh miura@192.168.1.3 docker images --filter=reference="localhost:5000/*" -q)
 
     echo 'stop repo on dst'
     sshpass -p dkw9srmd ssh miura@${DST_ADDR} docker stop repo

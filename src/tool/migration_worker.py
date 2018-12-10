@@ -132,6 +132,7 @@ class MigrationWorker:
 
     def run_involving_commit(self):
         self._logger.info("run_with_image_migration: Init RPC client")
+        print("rpc_client")
         rpc_client = RpcClient(dst_addr=self._m_opt['dst_addr'])
         tag = self.tag_creator()
 
@@ -139,9 +140,12 @@ class MigrationWorker:
         dst_repo = '{base}/{i_name}'.format(base=self._d_config['docker_hub']['local'],i_name=self._i_name.replace('/','_'))
         dir_name = '{0}_{1}'.format(self._i_name.replace('/','_'),tag)
         dst_default_path = '{0}/{1}'.format(self._d_config['destination']['default_dir'], dir_name)
+        print(src_repo)
+        print(dst_repo)
 
         volumes=[]
         c_volume_options = []
+        print("collecti volumes")
         for vo in DockerVolume.collect_volumes(self._c_name, self._d_cli.lo_client, self._d_cli.client):
             vo_hash = vo.hash_converter()
             c_vo_hash = copy.copy(vo_hash)
@@ -157,6 +161,7 @@ class MigrationWorker:
         r_recorder.track_on_subp()
         t_recorder.track(ConservativeMigrationConst.MIGRATION_TIME)
 
+        print("commit")
         # ===============COMMIT=================
         t_recorder.track(ConservativeMigrationConst.COMMIT)
         image = self._d_cli.commit(c_name=self._c_name, repository=src_repo, tag=tag)
@@ -165,6 +170,7 @@ class MigrationWorker:
         if image is not None:
             self._logger.info("Push Docker repo:{0}, tag:{1}".format(src_repo, tag))
 
+            print("push")
             # ===============PUSH=================
             t_recorder.track(ConservativeMigrationConst.PUSH)
             has_pushed = self._d_cli.push(repository=src_repo, tag=tag)
@@ -185,12 +191,14 @@ class MigrationWorker:
         if pulled_image is not None:
             self._logger.info("Checkpoint running container")
 
+            print("checkpoint")
             # ===============CHECKPOINT=================
             t_recorder.track(ConservativeMigrationConst.CHECKPOINT)
             t_recorder.track(ConservativeMigrationConst.SERVICE_DOWNTIME)
             has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name='checkpoint1', need_tmp_dir=True)
             t_recorder.track(ConservativeMigrationConst.CHECKPOINT)
 
+            print("rsync")
             # ===============RSYNC_C=================
             t_recorder.track(ConservativeMigrationConst.RSYNC_C_FS)
             has_checkpoint_sent = self.send_checkpoint(src_repo, tag)
@@ -206,6 +214,7 @@ class MigrationWorker:
         else:
             return self.returned_data_creator('create')
 
+        print("create")
         # ===============CREATE_C=================
         t_recorder.track(ConservativeMigrationConst.CREATE_C)
         status_with_c_id = rpc_client.create_container(i_name=dst_repo, version=tag, c_name=self._c_name, volumes=c_volume_options)
@@ -215,6 +224,7 @@ class MigrationWorker:
             self._logger.info("Restore container at dst host")
             restore_target_path = '{0}/checkpoints'.format(dst_default_path)
 
+            print("restore")
             # ===============RESTORE=================
             t_recorder.track(ConservativeMigrationConst.RESTORE)
             code = rpc_client.restore(self._c_name, default_path=restore_target_path)
