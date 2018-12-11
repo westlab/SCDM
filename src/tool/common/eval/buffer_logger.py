@@ -46,7 +46,12 @@ class BufferLogger:
 
                 #dic['id'] = json_data['id']
                 #dic['counter'] = json_data['counter']
-                self._dup_counter[int(row[6])].append(int(row[4]))
+                try:
+                    self._dup_counter[int(row[6])].append(int(row[4]))
+                except Exception as e:
+                    print(e)
+                    print("data: {0}".format(row))
+
 
     def compare_duplication(self):
         has_dupli = False
@@ -54,7 +59,7 @@ class BufferLogger:
             j = 0
             print(self._dup_counter[i])
             for j in range(len(self._dup_counter[i])):
-                if  j is self._dup_counter[i][j]:
+                if j == self._dup_counter[i][j]:
                     continue
                 else:
                     print("error: id: {0}, counter: {1}".format(i,j))
