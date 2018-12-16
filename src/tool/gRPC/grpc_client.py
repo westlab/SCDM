@@ -78,8 +78,8 @@ class RpcClient:
         info = self._stub.GetAppInfo(docker_migration_pb2.SessionInfo(app_id=app_id, s_packet_ids=[]))
         return info
 
-    def get_buf_info(self, app_id, kind):
-        status = self._stub.GetBufInfo(docker_migration_pb2.BufInfo(app_id=app_id, kind=kind))
+    def get_buf_info(self, app_id, kind, direction):
+        status = self._stub.GetBufInfo(docker_migration_pb2.BufInfo(app_id=app_id, kind=kind, direction=direction))
         return status.code
 
     def check_packet_arrival(self, app_id, buf_info):

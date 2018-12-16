@@ -277,7 +277,8 @@ class MigrationWorker:
 
         ### check src and dst buffer
         t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
-        dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value)  #in this case packet_id
+        # TODO: check behavior
+        dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.C2S.value)  #in this case packet_id
         if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
             return self.returned_data_creator('create')
         t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
@@ -291,7 +292,8 @@ class MigrationWorker:
 
         # check whether last src packet is arrived at dst node
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
-        src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
+        # TODO: check behavior
+        src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
         if (not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
             return self.returned_data_creator('create')
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
@@ -374,8 +376,8 @@ class MigrationWorker:
     def prepare_app_launch(self, re_rpc_cli, buf_loc, sig_loc, rules):
         return re_rpc_cli.prepare_app_launch(buf_loc, sig_loc, rules)
 
-    def get_buf_info(self, re_rpc_cli, app_id, kind):
-        return re_rpc_cli.get_buf_info(app_id, kind=kind)
+    def get_buf_info(self, re_rpc_cli, app_id, kind, direction):
+        return re_rpc_cli.get_buf_info(app_id, kind=kind, direction=direction)
 
     def check_packet_arrival(self, re_rpc_cli, app_id, packet_id):
         return re_rpc_cli.check_packet_arrival(app_id, packet_id)
@@ -418,24 +420,20 @@ class MigrationWorker:
 
 
         ### check src and dst buffer
+        print('check whether first packet is arrived ad src node')
         t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
         dst_first_packet_ids=[]
         with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
             futures = []
             for i in range(len(remote_rpc_clis)):
-                futures.append(executor.submit(self.get_buf_info, remote_rpc_clis[i], dst_app_ids[i], ClientBufInfo.BUF_FIRST.value))  #in this case packet_id
+                futures.append(executor.submit(self.get_buf_info, remote_rpc_clis[i], dst_app_ids[i], ClientBufInfo.BUF_FIRST.value, ScrDirection.C2S.value))  #in this case packet_id
             dst_first_packet_ids = [f.result() for f in futures]
+        print(dst_first_packet_ids)
         for dst_first_packet_id in dst_first_packet_ids:
             if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
                 return self.returned_data_creator('create')
         t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
 
-        ####  request ready for checkpoint
-        # del buffer
-        print('prepare for checkpoint')
-        t_recorder.track(DataConsistencyMigrationConst.SRC_DEL_RULES_AND_BUF)
-        local_rpc_cli.prepare_for_checkpoint(app_id)
-        t_recorder.track(DataConsistencyMigrationConst.SRC_DEL_RULES_AND_BUF)
 
         # check whether last src packet is arrived at dst node
         print('check whether last src packet is arrived ad dst node')
@@ -463,6 +461,13 @@ class MigrationWorker:
             if not all(has_arrived):
                 return self.returned_data_creator('create')
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
+
+        ####  request ready for checkpoint
+        # del buffer
+        print('prepare for checkpoint')
+        t_recorder.track(DataConsistencyMigrationConst.SRC_DEL_RULES_AND_BUF)
+        local_rpc_cli.prepare_for_checkpoint(app_id)
+        t_recorder.track(DataConsistencyMigrationConst.SRC_DEL_RULES_AND_BUF)
 
         # Inspect Images
         #code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
