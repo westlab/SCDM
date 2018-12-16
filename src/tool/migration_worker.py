@@ -276,12 +276,22 @@ class MigrationWorker:
         t_recorder.track(DataConsistencyMigrationConst.DST_CREATE_BUF)
 
         ### check src and dst buffer
+        print("check C2S packet")
         t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
         # TODO: check behavior
         dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.C2S.value)  #in this case packet_id
         if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
             return self.returned_data_creator('create')
         t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
+
+        # check whether last src packet is arrived at dst node
+        print("check S2C packet")
+        t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
+        # TODO: check behavior
+        dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
+        if (not (local_rpc_cli.check_packet_arrival(dst_app_id, dst_first_packet_id))):
+            return self.returned_data_creator('create')
+        t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
 
         ####  request ready for checkpoint
         # del buffer
@@ -290,13 +300,6 @@ class MigrationWorker:
         local_rpc_cli.prepare_for_checkpoint(app_id)
         t_recorder.track(DataConsistencyMigrationConst.SRC_DEL_RULES_AND_BUF)
 
-        # check whether last src packet is arrived at dst node
-        t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
-        # TODO: check behavior
-        src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
-        if (not (remote_rpc_cli.check_packet_arrival(dst_app_id, src_last_packet_id))):
-            return self.returned_data_creator('create')
-        t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
 
         # Inspect Images
         code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
@@ -382,6 +385,13 @@ class MigrationWorker:
     def check_packet_arrival(self, re_rpc_cli, app_id, packet_id):
         return re_rpc_cli.check_packet_arrival(app_id, packet_id)
 
+    def transfer_container_artifacts(self, re_rpc_cli, dst_addr):
+        return re_rpc_cli.transfer_container_artifacts(dst_addr)
+
+    def reload_docker_daemon(self, re_rpc_cli):
+        return re_rpc_cli.reload_daemon()
+
+
     def run_with_multi_scrs(self, app_id=0):
         self._logger.info("run: Init RPC client")
         remote_rpc_clis = [RpcClient(dst_addr=addr) for addr in self._m_opt['dst_addrs']]
@@ -409,15 +419,15 @@ class MigrationWorker:
         t_recorder.track(DataConsistencyMigrationConst.SRC_GET_APP_INFO)
 
         #### dst create buffer
+        print('create buffer')
         t_recorder.track(DataConsistencyMigrationConst.DST_CREATE_BUF)
         dst_app_ids=[]
         with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
             futures = []
             for cli in remote_rpc_clis:
-                futures.append(executor.submit(self.prepare_app_launch, cli, app_info_dict.buf_loc, app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules]))
+                futures.append(executor.submit(cli.prepare_app_launch, app_info_dict.buf_loc, app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules]))
             dst_app_ids = [f.result() for f in futures]
         t_recorder.track(DataConsistencyMigrationConst.DST_CREATE_BUF)
-
 
         ### check src and dst buffer
         print('check whether first packet is arrived ad src node')
@@ -426,7 +436,7 @@ class MigrationWorker:
         with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
             futures = []
             for i in range(len(remote_rpc_clis)):
-                futures.append(executor.submit(self.get_buf_info, remote_rpc_clis[i], dst_app_ids[i], ClientBufInfo.BUF_FIRST.value, ScrDirection.C2S.value))  #in this case packet_id
+                futures.append(executor.submit(remote_rpc_clis[i].get_buf_info, dst_app_ids[i], ClientBufInfo.BUF_FIRST.value, ScrDirection.C2S.value))  #in this case packet_id
             dst_first_packet_ids = [f.result() for f in futures]
         print(dst_first_packet_ids)
         for dst_first_packet_id in dst_first_packet_ids:
@@ -438,27 +448,21 @@ class MigrationWorker:
         # check whether last src packet is arrived at dst node
         print('check whether last src packet is arrived ad dst node')
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
-        """
-        src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
-        print(src_last_packet)
-        """
 
         rd = rdict(redis_cli.hgetall(app_id))
         src_last_packet_ids = [ rd["{0}.*{1}".format(ScrDirection.S2C.value, addr)][0] for addr in dst_local_addrs]
         print(rd)
         print(src_last_packet_ids)
-        pdb.set_trace()
-        #C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
-        #S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
 
-        has_arrived = []
+        dst_first_S2C_packet_ids=[]
         with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
             futures = []
             for i in range(len(remote_rpc_clis)):
-                futures.append(executor.submit(self.check_packet_arrival,remote_rpc_clis[i],dst_app_ids[i], src_last_packet_ids[i]))
-            has_arrived = [f.result() for f in futures]
-            pdb.set_trace()
-            if not all(has_arrived):
+                futures.append(executor.submit(remote_rpc_clis[i].get_buf_info, dst_app_ids[i], ClientBufInfo.BUF_FIRST.value, ScrDirection.S2C.value))  #in this case packet_id
+            dst_first_S2C_packet_ids = [f.result() for f in futures]
+        print(dst_first_S2C_packet_ids)
+        for dst_first_packet_id in dst_first_S2C_packet_ids:
+            if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
                 return self.returned_data_creator('create')
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
 
@@ -472,7 +476,6 @@ class MigrationWorker:
         # Inspect Images
         #code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
 
-        """
         # Check signal status
         print('check status')
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_STATUS)
@@ -490,53 +493,81 @@ class MigrationWorker:
         if has_checkpointed is not True:
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
 
-        has_create_tmp_dirs = []
+        print("create tmp dir")
+        has_created=[]
         with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
             futures = []
             for cli in remote_rpc_clis:
-                futures.append(executor.submit(self.check_packet_arrival,cli,self._c_id))
-            has_create_tmp_dirs = [f.result() for f in futures]
-            if all(has_create_tmp_dirs) != CODE_SUCCESS:
-                return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+                futures.append(executor.submit(cli.create_tmp_dir, self._c_id))
+            has_created = [f.result() for f in futures]
+        #if all(has_created) is not CODE_SUCCESS:
+        #    return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        t_recorder.track(DataConsistencyMigrationConst.RSYNC_C_FS)
 
         # Send artifacts
+        print("rsync")
         t_recorder.track(DataConsistencyMigrationConst.RSYNC_C_FS)
-        has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
-        t_recorder.track(DataConsistencyMigrationConst.RSYNC_C_FS)
-        if has_sent is not True:
+        has_sent=[]
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            futures = []
+            for addr in (self._m_opt['dst_addrs']):
+                futures.append(executor.submit(self._d_c_extractor.transfer_container_artifacts, addr))
+            has_sent = [f.result() for f in futures]
+        if all(has_sent) is not True:
             return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        t_recorder.track(DataConsistencyMigrationConst.RSYNC_C_FS)
+
+        print("allocate_fs")
         t_recorder.track(DataConsistencyMigrationConst.ALLOCATE_FS)
         volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
-        code = remote_rpc_cli.allocate_container_artifacts(self._d_c_extractor.c_name,
-                                                       self._d_c_extractor.c_id,
-                                                       self._d_c_extractor.i_layer_ids,
-                                                       self._d_c_extractor.c_layer_ids,
-                                                       volumes=volumes)
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            for i in range(len(remote_rpc_clis)):
+                executor.submit(remote_rpc_clis[i].allocate_container_artifacts, self._d_c_extractor.c_name, self._d_c_extractor.c_id, self._d_c_extractor.i_layer_ids, self._d_c_extractor.c_layer_ids, volumes)
         t_recorder.track(DataConsistencyMigrationConst.ALLOCATE_FS)
 
         # Reload daemon
+        print("reload")
+        has_reload=[]
         t_recorder.track(DataConsistencyMigrationConst.RELOAD)
-        code = remote_rpc_cli.reload_daemon()
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            futures = []
+            for cli in remote_rpc_clis:
+                futures.append(executor.submit(cli.reload_daemon))
+            has_reload = [f.result() for f in futures]
+        if has_reload != [CODE_SUCCESS, CODE_SUCCESS]:
+            return self.returned_data_creator('send_checkpoint')
         t_recorder.track(DataConsistencyMigrationConst.RELOAD)
 
         # Update application buffer read offset
-        t_recorder.track(DataConsistencyMigrationConst.DST_UPDATE_OFFSET)
+        print("update offset")
         rd = rdict(redis_cli.hgetall(app_id))
-        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
-        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
-        code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
+        t_recorder.track(DataConsistencyMigrationConst.DST_UPDATE_OFFSET)
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            futures = []
+            for i in range(len(remote_rpc_clis)):
+                C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addrs[i])][0]}
+                S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addrs[i])][0]}
+                print(C2S_info)
+                print(S2C_info)
+                code = executor.submit(remote_rpc_clis[i].update_buf_read_offset, app_id, [C2S_info, S2C_info])
         t_recorder.track(DataConsistencyMigrationConst.DST_UPDATE_OFFSET)
 
         # Restore
+        print("restore")
+        codes= []
         t_recorder.track(DataConsistencyMigrationConst.RESTORE)
-        code = remote_rpc_cli.restore(self._c_name)
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            futures = []
+            for cli in remote_rpc_clis:
+                futures.append(executor.submit(cli.restore, self._c_name))
+            codes = [f.result() for f in futures]
+        if codes != [CODE_SUCCESS, CODE_SUCCESS]:
+            return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
+
         t_recorder.track(DataConsistencyMigrationConst.RESTORE)
         t_recorder.track(DataConsistencyMigrationConst.SERVICE_DOWNTIME)
         t_recorder.track(DataConsistencyMigrationConst.MIGRATION_TIME)
         r_recorder.terminate_subp()
-
-        if code != CODE_SUCCESS:
-            return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
 
         # Write data
         t_recorder.write()
@@ -547,7 +578,6 @@ class MigrationWorker:
 
         print('check data consistency')
         buf_logger.run()
-        """
 
         return self.returned_data_creator('fin')
 
