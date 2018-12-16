@@ -11,7 +11,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('rest', 'rpc', 'codegen', 'run_prop', 'run_con', 'run_scr', 'cli_soc', 'sync', 'debug'),
+                    choices=('rest', 'rpc', 'codegen', 'run_prop', 'run_con', 'run_scr', 'run_multi', 'cli_soc', 'sync', 'debug'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
@@ -119,6 +119,24 @@ def run_with_scr():
                              m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth, packet_rate=args.packet_rate)
     data = worker.run_with_scr()
 
+def run_with_multi_scrs():
+    from tool.migration_worker import MigrationWorker
+
+    checkpoint_option_keys = ['ports']
+    migration_option_keys = ['host', 'dst_addrs']
+    version = 'latest'
+
+    ports =[]
+    dst_addrs = ['10.24.12.142', '10.24.12.143'] # miura-router2,3
+    #dst_addr = '10.24.12.141' # miura-router1
+    host = 'miura'
+    checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
+    migration_option = dict(zip(migration_option_keys, [host, dst_addrs]))
+    worker = MigrationWorker(cli=docker_api,
+                             i_name=args.image_name, version=version, c_name=args.container_name,
+                             m_opt=migration_option, c_opt=checkpoint_option, bandwidth=args.bandwidth, packet_rate=args.packet_rate)
+    data = worker.run_with_multi_scrs()
+
 def codegen():
     from service import codegen
     codegen.run()
@@ -170,6 +188,8 @@ if __name__ == "__main__":
         run_con()
     if args.program == 'run_scr':
         run_with_scr()
+    if args.program == 'run_multi':
+        run_with_multi_scrs()
     if args.program == 'debug':
         debug()
 

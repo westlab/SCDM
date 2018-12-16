@@ -5,6 +5,7 @@ from subprocess import Popen
 from pathlib import Path
 import pdb # for debug
 import copy
+from concurrent.futures import ThreadPoolExecutor
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
@@ -367,6 +368,181 @@ class MigrationWorker:
 
         print('check data consistency')
         buf_logger.run()
+
+        return self.returned_data_creator('fin')
+
+    def prepare_app_launch(self, re_rpc_cli, buf_loc, sig_loc, rules):
+        return re_rpc_cli.prepare_app_launch(buf_loc, sig_loc, rules)
+
+    def get_buf_info(self, re_rpc_cli, app_id, kind):
+        return re_rpc_cli.get_buf_info(app_id, kind=kind)
+
+    def check_packet_arrival(self, re_rpc_cli, app_id, packet_id):
+        return re_rpc_cli.check_packet_arrival(app_id, packet_id)
+
+    def run_with_multi_scrs(self, app_id=0):
+        self._logger.info("run: Init RPC client")
+        remote_rpc_clis = [RpcClient(dst_addr=addr) for addr in self._m_opt['dst_addrs']]
+        local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
+        dst_first_packet_ids =0
+        src_last_packet_id =0
+        dst_local_addrs = ["192.168.2.22", "192.168.3.33"] # NUC-2, NUC-3
+        max_workers = len(dst_local_addrs)
+
+        redis_cli = RedisClient()
+        d_recorder = DiskRecorder('dcm_multi_{0}_{1}'.format(self._packet_rate, self._c_name))
+        t_recorder = TimeRecorder('dcm_multi_{0}_{1}'.format(self._packet_rate, self._c_name), migration_type="dcm")
+        r_recorder = ResourceRecorder('dcm_multi_{0}_{1}'.format(self._packet_rate, self._c_name))
+        #for i in range(len(dst_local_addrs)):
+        #    buf_loggers = BufferLogger('dcm_multi_{0}_{1}'.format(self._packet_rate, self._c_name),dst_addr=self._m_opt['dst_addrs'])
+
+        r_recorder.insert_init_cond()
+        r_recorder.track_on_subp()
+        t_recorder.track(DataConsistencyMigrationConst.MIGRATION_TIME)
+
+        #### src app info
+        # Check docker_migration.proto for refering data format of app_info_dict
+        t_recorder.track(DataConsistencyMigrationConst.SRC_GET_APP_INFO)
+        app_info_dict = local_rpc_cli.get_app_info_dict(app_id)
+        t_recorder.track(DataConsistencyMigrationConst.SRC_GET_APP_INFO)
+
+        #### dst create buffer
+        t_recorder.track(DataConsistencyMigrationConst.DST_CREATE_BUF)
+        dst_app_ids=[]
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            futures = []
+            for cli in remote_rpc_clis:
+                futures.append(executor.submit(self.prepare_app_launch, cli, app_info_dict.buf_loc, app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules]))
+            dst_app_ids = [f.result() for f in futures]
+        t_recorder.track(DataConsistencyMigrationConst.DST_CREATE_BUF)
+
+
+        ### check src and dst buffer
+        t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
+        dst_first_packet_ids=[]
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            futures = []
+            for i in range(len(remote_rpc_clis)):
+                futures.append(executor.submit(self.get_buf_info, remote_rpc_clis[i], dst_app_ids[i], ClientBufInfo.BUF_FIRST.value))  #in this case packet_id
+            dst_first_packet_ids = [f.result() for f in futures]
+        for dst_first_packet_id in dst_first_packet_ids:
+            if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
+                return self.returned_data_creator('create')
+        t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
+
+        ####  request ready for checkpoint
+        # del buffer
+        print('prepare for checkpoint')
+        t_recorder.track(DataConsistencyMigrationConst.SRC_DEL_RULES_AND_BUF)
+        local_rpc_cli.prepare_for_checkpoint(app_id)
+        t_recorder.track(DataConsistencyMigrationConst.SRC_DEL_RULES_AND_BUF)
+
+        # check whether last src packet is arrived at dst node
+        print('check whether last src packet is arrived ad dst node')
+        t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
+        """
+        src_last_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value)  #in this case packet_id
+        print(src_last_packet)
+        """
+
+        rd = rdict(redis_cli.hgetall(app_id))
+        src_last_packet_ids = [ rd["{0}.*{1}".format(ScrDirection.S2C.value, addr)][0] for addr in dst_local_addrs]
+        print(rd)
+        print(src_last_packet_ids)
+        pdb.set_trace()
+        #C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
+        #S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
+
+        has_arrived = []
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            futures = []
+            for i in range(len(remote_rpc_clis)):
+                futures.append(executor.submit(self.check_packet_arrival,remote_rpc_clis[i],dst_app_ids[i], src_last_packet_ids[i]))
+            has_arrived = [f.result() for f in futures]
+            pdb.set_trace()
+            if not all(has_arrived):
+                return self.returned_data_creator('create')
+        t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
+
+        # Inspect Images
+        #code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
+
+        """
+        # Check signal status
+        print('check status')
+        t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_STATUS)
+        is_ready = local_rpc_cli.check_status(app_id)
+        if is_ready is False:
+            return self.returned_data_creator('check_status', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_STATUS)
+
+        # Checkpoint
+        print("==============checkpoint==============")
+        t_recorder.track(DataConsistencyMigrationConst.CHECKPOINT)
+        t_recorder.track(DataConsistencyMigrationConst.SERVICE_DOWNTIME)
+        has_checkpointed = self._d_cli.checkpoint(self._c_name)
+        t_recorder.track(DataConsistencyMigrationConst.CHECKPOINT)
+        if has_checkpointed is not True:
+            return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
+        has_create_tmp_dirs = []
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
+            futures = []
+            for cli in remote_rpc_clis:
+                futures.append(executor.submit(self.check_packet_arrival,cli,self._c_id))
+            has_create_tmp_dirs = [f.result() for f in futures]
+            if all(has_create_tmp_dirs) != CODE_SUCCESS:
+                return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
+        # Send artifacts
+        t_recorder.track(DataConsistencyMigrationConst.RSYNC_C_FS)
+        has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        t_recorder.track(DataConsistencyMigrationConst.RSYNC_C_FS)
+        if has_sent is not True:
+            return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        t_recorder.track(DataConsistencyMigrationConst.ALLOCATE_FS)
+        volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
+        code = remote_rpc_cli.allocate_container_artifacts(self._d_c_extractor.c_name,
+                                                       self._d_c_extractor.c_id,
+                                                       self._d_c_extractor.i_layer_ids,
+                                                       self._d_c_extractor.c_layer_ids,
+                                                       volumes=volumes)
+        t_recorder.track(DataConsistencyMigrationConst.ALLOCATE_FS)
+
+        # Reload daemon
+        t_recorder.track(DataConsistencyMigrationConst.RELOAD)
+        code = remote_rpc_cli.reload_daemon()
+        t_recorder.track(DataConsistencyMigrationConst.RELOAD)
+
+        # Update application buffer read offset
+        t_recorder.track(DataConsistencyMigrationConst.DST_UPDATE_OFFSET)
+        rd = rdict(redis_cli.hgetall(app_id))
+        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
+        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
+        code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
+        t_recorder.track(DataConsistencyMigrationConst.DST_UPDATE_OFFSET)
+
+        # Restore
+        t_recorder.track(DataConsistencyMigrationConst.RESTORE)
+        code = remote_rpc_cli.restore(self._c_name)
+        t_recorder.track(DataConsistencyMigrationConst.RESTORE)
+        t_recorder.track(DataConsistencyMigrationConst.SERVICE_DOWNTIME)
+        t_recorder.track(DataConsistencyMigrationConst.MIGRATION_TIME)
+        r_recorder.terminate_subp()
+
+        if code != CODE_SUCCESS:
+            return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
+
+        # Write data
+        t_recorder.write()
+        r_recorder.write()
+        d_recorder.track_all(self._d_c_extractor)
+        d_recorder.write()
+
+
+        print('check data consistency')
+        buf_logger.run()
+        """
 
         return self.returned_data_creator('fin')
 
