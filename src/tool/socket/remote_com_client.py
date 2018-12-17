@@ -103,9 +103,13 @@ class SmartCommunityRouterAPI:
         message = self.get_message_from_scr(app_id, ClientMessageCode.SERV_CHG_APP_BUF_R_OFFSET.value, payload=payload)
         return True
 
-    def get_buf_info(self, app_id, kind):
+    def get_buf_info(self, app_id, kind, direction):
         i_message_type = ClientMessageCode.DM_ASK_WRITE_BUF_INFO.value
-        ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload=str(kind))
+        print("get_buf_info")
+        print(kind)
+        print(direction)
+        print("get_buf_info")
+        ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload="{0}|{1}".format(str(kind), str(direction)))
         buf_info = self._soc_cli.read()['payload']
         return int(buf_info) if buf_info else 0
 
