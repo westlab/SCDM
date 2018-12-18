@@ -47,7 +47,7 @@ class BufferLogger:
                 #dic['id'] = json_data['id']
                 #dic['counter'] = json_data['counter']
                 try:
-                    self._dup_counter[int(row[6])].append(int(row[4]))
+                    self._dup_counter[int(row[7])].append(int(row[5]))
                 except Exception as e:
                     print(e)
                     print("data: {0}".format(row))

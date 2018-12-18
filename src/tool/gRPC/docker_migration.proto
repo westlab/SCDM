@@ -24,6 +24,7 @@ service  DockerMigrator {
     rpc CheckStatus(SessionInfo) returns (Status) {}
     rpc GetAppInfo(SessionInfo) returns (AppInfo) {}
     rpc UpdateBufReadOffset (PacketInfo) returns (Status) {}
+    rpc BulkUpdateReadOffset (BufInfo) returns (Status) {}
     rpc GetBufInfo (BufInfo) returns (Status) {}
     rpc CheckPacketArrival (BufInfo) returns (Status) {}
     rpc RequestMigration (DockerSummary) returns (stream Status) {}

@@ -279,8 +279,9 @@ class MigrationWorker:
         print("check C2S packet")
         t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
         # TODO: check behavior
-        dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.C2S.value)  #in this case packet_id
-        if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_packet_id))):
+        dst_first_C2S_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.C2S.value)  #in this case packet_id
+        print(dst_first_C2S_packet_id)
+        if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_C2S_packet_id))):
             return self.returned_data_creator('create')
         t_recorder.track(DataConsistencyMigrationConst.SRC_CHECK_DST_PACKET_ARRAIVAL)
 
@@ -288,8 +289,9 @@ class MigrationWorker:
         print("check S2C packet")
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
         # TODO: check behavior
-        dst_first_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
-        if (not (local_rpc_cli.check_packet_arrival(dst_app_id, dst_first_packet_id))):
+        dst_first_S2C_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
+        print(dst_first_S2C_packet_id)
+        if (not (local_rpc_cli.check_packet_arrival(dst_app_id, dst_first_S2C_packet_id))):
             return self.returned_data_creator('create')
         t_recorder.track(DataConsistencyMigrationConst.DST_CHECK_SRC_PACKET_ARRAIVAL)
 
@@ -346,10 +348,10 @@ class MigrationWorker:
         t_recorder.track(DataConsistencyMigrationConst.RELOAD)
 
         # Update application buffer read offset
-        t_recorder.track(DataConsistencyMigrationConst.DST_UPDATE_OFFSET)
-        rd = rdict(redis_cli.hgetall(app_id))
-        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
-        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
+        src_last_C2S_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value, direction=ScrDirection.C2S.value)  #in this case packet_id
+        src_last_S2C_packet_id = local_rpc_cli.get_buf_info(app_id, kind=ClientBufInfo.BUF_LAST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
+        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": src_last_C2S_packet_id}
+        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": src_last_S2C_packet_id}
         code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
         t_recorder.track(DataConsistencyMigrationConst.DST_UPDATE_OFFSET)
 
