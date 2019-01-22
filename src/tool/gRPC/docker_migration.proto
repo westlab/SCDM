@@ -118,5 +118,6 @@ message BufInfo {
     int32 kind = 2;
     int32 direction = 3;
     int32 buf_info = 4; // in this case, packet_id
+    string ip_addr = 5;
 }
 
