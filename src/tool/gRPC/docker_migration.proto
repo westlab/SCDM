@@ -24,6 +24,7 @@ service  DockerMigrator {
     rpc CheckStatus(SessionInfo) returns (Status) {}
     rpc GetAppInfo(SessionInfo) returns (AppInfo) {}
     rpc UpdateBufReadOffset (PacketInfo) returns (Status) {}
+    rpc BulkUpdateReadOffset (BufInfo) returns (Status) {}
     rpc GetBufInfo (BufInfo) returns (Status) {}
     rpc CheckPacketArrival (BufInfo) returns (Status) {}
     rpc RequestMigration (DockerSummary) returns (stream Status) {}
@@ -117,5 +118,6 @@ message BufInfo {
     int32 kind = 2;
     int32 direction = 3;
     int32 buf_info = 4; // in this case, packet_id
+    string ip_addr = 5;
 }
 
