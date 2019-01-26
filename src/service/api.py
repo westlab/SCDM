@@ -64,8 +64,8 @@ def migrate(method):
                         status=400,
                         mimetype='application/json'
                         )
-    return Response(json.dumps(data['data']),
-                    status=data['status'],
+    return Response(json.dumps(res['data']),
+                    status=res['status'],
                     mimetype='application/json'
                     )
 

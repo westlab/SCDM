@@ -249,7 +249,6 @@ class MigrationWorker:
         redis_cli = RedisClient()
 
         #### src app info
-        pdb.set_trace()
         app_info_dict = local_rpc_cli.get_app_info_dict(app_id)
 
         #### create buffer
@@ -318,8 +317,6 @@ class MigrationWorker:
         code = remote_rpc_cli.restore(self._c_name)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
-
-        # Write data
 
         return self.returned_data_creator('fin')
 
@@ -685,8 +682,8 @@ class MigrationWorker:
             data        { "message": String, "container_dict": dict }
             container_dict   { "image_name": String, "version": String, "container_name": String }
     """
-    def returned_data_creator(self, func_name, app_id=0):
-        container_dict = { "image_name": self._i_name, "version": self._version, "container": self._c_name }
+    def returned_data_creator(self, func_name, dst_app_id=0):
+        container_dict = { "image_name": self._i_name, "version": self._version, "container": self._c_name, "dst_app_id": dst_app_id }
         data = { "container_dict": container_dict }
 
         if func_name is "ping":
@@ -721,7 +718,7 @@ class MigrationWorker:
             return { "data": data, "status": HTTPStatus.INTERNAL_SERVER_ERROR.value }
         elif func_name is 'fin':
             data["message"] = "Accepted"
-            return { "data": data, "status": HTTPStatus.OK.value, "app_id": app_id }
+            return { "data": data, "status": HTTPStatus.OK.value}
         else:
             data["message"] = "unknown function"
             return { "data": data, "status": HTTPStatus.BAD_REQUEST.value}

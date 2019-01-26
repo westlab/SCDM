@@ -57,8 +57,8 @@ class RpcClient:
                                                                              options=c_opt))
         return gen
 
-    def prepare_app_launch(self, buf_loc, sig_loc, rules):
-        status = self._stub.PrepareAppLaunch(docker_migration_pb2.AppInfo(buf_loc=buf_loc, sig_loc=sig_loc, rules=rules))
+    def prepare_app_launch(self, app_id, buf_loc, sig_loc, rules):
+        status = self._stub.PrepareAppLaunch(docker_migration_pb2.AppInfo(app_id=app_id, buf_loc=buf_loc, sig_loc=sig_loc, rules=rules))
         return status.code 
 
     def prepare_for_checkpoint(self, app_id):
