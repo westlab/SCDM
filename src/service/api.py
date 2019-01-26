@@ -3,32 +3,19 @@ from flask import Blueprint, request, json, Response
 from tool.docker.docker_api import DockerApi
 from tool.docker.docker_layer import DockerLayer
 from tool.migration_worker import MigrationWorker
-from tool.common.time_recorder import TimeRecorder
+import pdb
+import json
 
 v1 = Blueprint('v1', __name__)
 docker_api = DockerApi()
 docker_api.login()
 DockerLayer.execute_all_remapping()
 
-@v1.route("/test")
-def test():
-    repo = 'tatsukitatsuki/busybox'
-    tag = '20180403_185150'
-    hoge = docker_api.push(repo, tag)
-    return "hello from api.py"
-
 @v1.route("/docker/check", methods=['GET'])
 def check():
     is_alive = docker_api.ping()
     return Response(json.dumps({'server': is_alive}),
                     mimetype='application/json')
-
-@v1.route("/ping")
-def ping():
-    from tool.gRPC.grpc_client import RpcClient
-    rpc_client = RpcClient("10.24.129.91")
-    rpc_client.ping()
-    return "hello from api.py"
 
 @v1.route("/docker/inspect", methods=['GET'])
 def inspect():
@@ -41,30 +28,45 @@ def inspect():
                     mimetype='application/json')
 
 # TODO: 非同期にするかどうか/同期型にするかどうか
-@v1.route("/docker/migrate", methods=['POST'])
-def migrate():
-    checkpoint_option_keys = ['ports']
-    migration_option_keys = ['host', 'dst_addr']
-    image_name = request.form['image_name']
-    container_name = request.form['container_name']
-    version = request.form.get('version', 'latest')
-    checkpoint_name = request.form.get('checkpoint_name', 'checkpoint')
-    # checkpoint options
-    # TODO: portがうまく取得できない request, recieve側どちらが問題かは不明
-    ports = request.form.getlist('ports', [])
-    checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
-    # migration options
-    dst_addr = request.form[migration_option_keys[1]]
-    host = request.form.get(migration_option_keys[0], 'host')
-    migration_option = dict(zip(migration_option_keys, [host, dst_addr]))
+@v1.route("/docker/migrate/<method>", methods=['POST'])
+def migrate(method):
+    data = request.json
 
-    worker = MigrationWorker(cli=docker_api,
-                             i_name=image_name, version=version, c_name=container_name,
-                             cp_name=checkpoint_name,
-                             m_opt=migration_option, c_opt=checkpoint_option)
-    data = worker.run()
+    # have optional values
+    res = {}
+    checkpoint_option_keys = ['port']
+    migration_option_keys = ['host', 'dst_addr', 'pkt_dst_addr']
+    version = data['version'] if 'version' in data else 'latest'
+    ports = data['port'] if 'port' in data else []
+    host = data['host'] if 'host' in data else 'host'
+
+    # Give values
+    try:
+        dst_addr = data['dst_addr']
+        pkt_dst_addr = data['pkt_dst_addr'] if method == 'cgm' else ""
+
+        checkpoint_option = dict(zip(checkpoint_option_keys, [ports]))
+        migration_option = dict(zip(migration_option_keys, [host, dst_addr, pkt_dst_addr]))
+        worker = MigrationWorker(cli=docker_api,
+                                i_name=data['image_name'], 
+                                version=version, 
+                                c_name=data['container_name'],
+                                m_opt=migration_option, 
+                                c_opt=checkpoint_option)
+        if method == 'llm':
+            res = worker.run_llm()
+        elif method == 'cgm':
+            res = worker.run_cgm()
+        else:
+            raise Exception
+    except Exception as e:
+        return Response(json.dumps({'error': e}),
+                        status=400,
+                        mimetype='application/json'
+                        )
     return Response(json.dumps(data['data']),
                     status=data['status'],
                     mimetype='application/json'
                     )
+
 
