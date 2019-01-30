@@ -252,7 +252,7 @@ class MigrationWorker:
         app_info_dict = local_rpc_cli.get_app_info_dict(app_id)
 
         #### create buffer
-        dst_app_id = remote_rpc_cli.prepare_app_launch(app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
+        dst_app_id = remote_rpc_cli.prepare_app_launch(app_id, app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
         ### check src and dst buffer
         print("check C2S packet")
         # TODO: check behavior
@@ -347,7 +347,7 @@ class MigrationWorker:
 
         #### create buffer
         #t_recorder.track(DataConsistencyMigrationConst.DST_CREATE_BUF)
-        dst_app_id = remote_rpc_cli.prepare_app_launch(app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
+        dst_app_id = remote_rpc_cli.prepare_app_launch(app_id, app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
         #t_recorder.track(DataConsistencyMigrationConst.DST_CREATE_BUF)
 
         ### check src and dst buffer
@@ -484,7 +484,7 @@ class MigrationWorker:
         with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="thread") as executor:
             futures = []
             for cli in remote_rpc_clis:
-                futures.append(executor.submit(cli.prepare_app_launch, app_info_dict.buf_loc, app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules]))
+                futures.append(executor.submit(cli.prepare_app_launch, app_id, app_info_dict.buf_loc, app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules]))
             dst_app_ids = [f.result() for f in futures]
         t_recorder.track(DataConsistencyMigrationConst.DST_CREATE_BUF)
 
