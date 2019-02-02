@@ -6,6 +6,7 @@ from pathlib import Path
 import pdb # for debug
 import copy
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 from settings.docker import CODE_SUCCESS, CODE_HAS_IMAGE, CODE_NO_IMAGE, DOCKER_BASIC_SETTINGS_PATH
 from tool.common.logging.logger_factory import LoggerFactory
@@ -246,6 +247,7 @@ class MigrationWorker:
         dst_first_packet_id =0
         src_last_packet_id =0
         dst_local_addr = self._m_opt['pkt_dst_addr']
+        now =  datetime.now().strftime('%s')
         redis_cli = RedisClient()
 
         #### src app info
@@ -254,6 +256,7 @@ class MigrationWorker:
         #### create buffer
         dst_app_id = remote_rpc_cli.prepare_app_launch(app_id, app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
         ### check src and dst buffer
+        print("dst_app_id  : {0}".format(dst_app_id))
         print("check C2S packet")
         # TODO: check behavior
         dst_first_C2S_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.C2S.value)  #in this case packet_id
@@ -285,7 +288,7 @@ class MigrationWorker:
 
         # Checkpoint
         print("==============checkpoint==============")
-        has_checkpointed = self._d_cli.checkpoint(self._c_name)
+        has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name=now)
         if has_checkpointed is not True:
             return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
         has_create_tmp_dir = remote_rpc_cli.create_tmp_dir(self._c_id)
@@ -314,7 +317,7 @@ class MigrationWorker:
         code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
 
         # Restore
-        code = remote_rpc_cli.restore(self._c_name)
+        code = remote_rpc_cli.restore(self._c_name, cp_name=now)
         if code != CODE_SUCCESS:
             return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
 

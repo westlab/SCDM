@@ -113,6 +113,12 @@ class SmartCommunityRouterAPI:
         does_arrive = self._soc_cli.read()['payload']
         return int(does_arrive) if does_arrive else 0
 
+    def bulk_rule_update(self, app_id, rules, insert):
+        i_message_type = ClientMessageCode.BULK_RULE_INS if bool(insert) else ClientMessageCode.BULK_RULE_DEL
+        ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload='|'.join(rules))
+        message = self._soc_cli.read()
+        return message
+
 class RemoteComClient:
     BUFFER_SIZE = 1024
 

@@ -233,6 +233,11 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
 
     def GetBufInfo(self, req, context):
         self._logger.info("Get buffer information")
+        print("=============================")
+        print("app_id           : {0}".format(req.app_id))
+        print("kind             : {0}".format(req.kind))
+        print("direction        : {0}".format(req.direction))
+        print("=============================")
         buf_info = self._scr_cli.get_buf_info(req.app_id, req.kind, req.direction) # packet id
         return docker_migration_pb2.Status(code=buf_info)
 

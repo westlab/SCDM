@@ -27,7 +27,6 @@ def inspect():
     return Response(json.dumps(data),
                     mimetype='application/json')
 
-# TODO: 非同期にするかどうか/同期型にするかどうか
 @v1.route("/docker/migrate/<method>", methods=['POST'])
 def migrate(method):
     data = request.json
