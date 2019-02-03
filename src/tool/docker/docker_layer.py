@@ -73,10 +73,12 @@ class DockerLayer(DockerBaseApi):
         pattern = OVERLAYER2_DIR_PATH + '/(.*)/diff'
         reg = re.compile(pattern)
         layer_config = self._lo_client.inspect_container(c_name)['GraphDriver']['Data']
-        #layer_ids.append(reg.match(layer_config['LowerDir'].split(':')[0]).group(1)) if 'LowerDir' in layer_config.keys() else None
         layer_ids.append(reg.match(layer_config['UpperDir']).group(1))
-        init_layer = [ layer for layer in layer_config['LowerDir'].split(':') if layer_ids[0] in layer][0]
-        layer_ids.append(init_layer)
+        #layer_ids.append(reg.match(layer_config['LowerDir'].split(':')[0]).group(1)) if 'LowerDir' in layer_config.keys() else None
+        if 'LowerDir' in layer_config.keys():
+            #init_layer = [ layer for layer in layer_config['LowerDir'].split(':') if layer_ids[0] in layer][0]
+            #layer_ids.append(init_layer)
+            layer_ids.append(layer_ids[0] + '-init')
         return layer_ids
 
     """
