@@ -321,6 +321,10 @@ class MigrationWorker:
         if code != CODE_SUCCESS:
             return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
 
+        has_remove_con = self._d_cli.remove(self._c_name)
+        if has_remove_con is not True:
+            return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
         return self.returned_data_creator('fin')
 
     def run_cgm_with_recorder(self, app_id=0):

@@ -186,20 +186,28 @@ class DockerBaseApi:
     @params String name
     @return True|False
     """
-    def container_present(self, name):
+    def container_present(self, c_name):
         try:
             c = self._client.containers.get(name)
             return True if c is not None else False
         except docker.errors.NotFound:
             return False
 
+    def remove(self, name):
+        try:
+            #c = self._client.containers.remove(name, force=True)
+            cmd='docker rm -f {0}'.format(name)
+            result = sp.run(cmd.strip().split(" "), check=True)
+            return True
+        except docker.errors.NotFound:
+            return False
     """
     Checkpoint a running container
 
     @params String c_name
     @params String cp_name
     #@params Boolean leave_running
-    @return True|False
+    @return True | False
     """
     def checkpoint(self, c_name, cp_name='checkpoint1', need_tmp_dir=False):
         if need_tmp_dir is True:
