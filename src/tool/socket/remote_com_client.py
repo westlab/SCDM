@@ -79,10 +79,8 @@ class SmartCommunityRouterAPI:
         }
         return buf_info
 
-    def prepare_app_launch(self, buf, sig, rules):
-        app_id = 0
-
-        message = self.get_message_from_scr(app_id, ClientMessageCode.DM_INIT_BUF.value, payload='/tmp/serv_buffer0')
+    def prepare_app_launch(self, app_id, buf, sig, rules):
+        message = self.get_message_from_scr(app_id, ClientMessageCode.DM_INIT_BUF.value, payload=buf)
         dst_app_id = int(message['payload'])
         ret = self._soc_cli.send_formalized_message(dst_app_id, ClientMessageCode.BULK_RULE_INS.value, '|'.join(rules))
         message =self._soc_cli.read()
@@ -114,6 +112,12 @@ class SmartCommunityRouterAPI:
         ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload=str(identifier))
         does_arrive = self._soc_cli.read()['payload']
         return int(does_arrive) if does_arrive else 0
+
+    def bulk_rule_update(self, app_id, rules, insert):
+        i_message_type = ClientMessageCode.BULK_RULE_INS if bool(insert) else ClientMessageCode.BULK_RULE_DEL
+        ret = self._soc_cli.send_formalized_message(app_id, message_type=i_message_type, payload='|'.join(rules))
+        message = self._soc_cli.read()
+        return message
 
 class RemoteComClient:
     BUFFER_SIZE = 1024

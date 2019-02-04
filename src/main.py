@@ -151,14 +151,17 @@ def cli_soc():
     dst_addr = "127.0.0.1"
     addr = "192.168.3.33"
 
-    local_rpc_cli = RpcClient(dst_addr=dst_addr)
-    redis_cli = RedisClient()
-    rd = rdict(redis_cli.hgetall(app_id))
-    C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, addr)][0]}
-    S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, addr)][0]}
-    packets = [C2S_info, S2C_info]
-    print(packets)
-    code = local_rpc_cli.update_buf_read_offset(app_id, packets)
+    cli = SmartCommunityRouterAPI();
+    cli.connect();
+    buf_info = cli.get_app_info_dict(app_id)
+
+    print('del all rules')
+    cli.bulk_rule_update(app_id, buf_info['rules'], 0)
+
+    print('sleep 10sec')
+    sleep(10)
+    print('insert all rules')
+    cli.bulk_rule_update(app_id, buf_info['rules'], 1)
 
 
 def sync():

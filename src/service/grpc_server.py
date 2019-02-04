@@ -199,7 +199,7 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
 
     def PrepareAppLaunch(self, req, context):
         self._logger.info("Prepare App Launch")
-        dst_app_id = self._scr_cli.prepare_app_launch(req.buf_loc, req.sig_loc, req.rules)
+        dst_app_id = self._scr_cli.prepare_app_launch(req.app_id, req.buf_loc, req.sig_loc, req.rules)
         return docker_migration_pb2.Status(code=dst_app_id)
 
     def PrepareForCheckpoint(self, req, context):
@@ -216,7 +216,8 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
     def GetAppInfo(self, req, context):
         self._logger.info("Get App Info")
         info_dict = self._scr_cli.get_app_info_dict(req.app_id)
-        return docker_migration_pb2.AppInfo(buf_loc=info_dict['buf_loc'],
+        return docker_migration_pb2.AppInfo(app_id = req.app_id,
+                                            buf_loc=info_dict['buf_loc'],
                                             sig_loc=info_dict['sig_loc'],
                                             rules=info_dict['rules'])
 
@@ -232,6 +233,11 @@ class DockerMigrator(docker_migration_pb2_grpc.DockerMigratorServicer):
 
     def GetBufInfo(self, req, context):
         self._logger.info("Get buffer information")
+        print("=============================")
+        print("app_id           : {0}".format(req.app_id))
+        print("kind             : {0}".format(req.kind))
+        print("direction        : {0}".format(req.direction))
+        print("=============================")
         buf_info = self._scr_cli.get_buf_info(req.app_id, req.kind, req.direction) # packet id
         return docker_migration_pb2.Status(code=buf_info)
 

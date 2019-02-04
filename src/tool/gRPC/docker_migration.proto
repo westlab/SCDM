@@ -93,9 +93,10 @@ message Status {
 }
 
 message AppInfo {
-    string buf_loc = 1;
-    string sig_loc = 2;
-    repeated string rules = 3;
+    int32 app_id = 1;
+    string buf_loc = 2;
+    string sig_loc = 3;
+    repeated string rules = 4;
 }
 
 message SessionInfo {
