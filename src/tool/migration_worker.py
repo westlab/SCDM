@@ -265,12 +265,14 @@ class MigrationWorker:
             return self.returned_data_creator('create')
 
         # check whether last src packet is arrived at dst node
+        """
         print("check S2C packet")
         # TODO: check behavior
         dst_first_S2C_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
         print(dst_first_S2C_packet_id)
         if (not (local_rpc_cli.check_packet_arrival(dst_app_id, dst_first_S2C_packet_id))):
             return self.returned_data_creator('create')
+        """
 
         ####  request ready for checkpoint
         # del buffer
@@ -309,12 +311,14 @@ class MigrationWorker:
 
         # Reload daemon
         code = remote_rpc_cli.reload_daemon()
-
+        
+        """
         # Update application buffer read offset
         rd = rdict(redis_cli.hgetall(app_id))
         C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
         S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
         code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
+        """
 
         # Restore
         code = remote_rpc_cli.restore(self._c_name, cp_name=now)
