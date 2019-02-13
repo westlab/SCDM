@@ -265,7 +265,95 @@ class MigrationWorker:
             return self.returned_data_creator('create')
 
         # check whether last src packet is arrived at dst node
-        """
+        print("check S2C packet")
+        # TODO: check behavior
+        dst_first_S2C_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
+        print(dst_first_S2C_packet_id)
+        if (not (local_rpc_cli.check_packet_arrival(dst_app_id, dst_first_S2C_packet_id))):
+            return self.returned_data_creator('create')
+
+        ####  request ready for checkpoint
+        # del buffer
+        print('prepare for checkpoint')
+        local_rpc_cli.prepare_for_checkpoint(app_id)
+
+        # Inspect Images
+        #code = remote_rpc_cli.inspect(i_name=self._i_name, version=self._version, c_name=self._c_name)
+
+        # Check signal status
+        print('check status')
+        is_ready = local_rpc_cli.check_status(app_id)
+        if is_ready is False:
+            return self.returned_data_creator('check_status', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
+        # Checkpoint
+        print("==============checkpoint==============")
+        has_checkpointed = self._d_cli.checkpoint(self._c_name, cp_name=now)
+        if has_checkpointed is not True:
+            return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        has_create_tmp_dir = remote_rpc_cli.create_tmp_dir(self._c_id)
+        if has_create_tmp_dir is not CODE_SUCCESS:
+            #TODO: fix
+            return self.returned_data_creator('checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
+        # Send artifacts
+        has_sent = self._d_c_extractor.transfer_container_artifacts(dst_addr=self._m_opt['dst_addr'])
+        if has_sent is not True:
+            return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+        volumes=[ volume.hash_converter() for volume in self._d_c_extractor.volumes]
+        code = remote_rpc_cli.allocate_container_artifacts(self._d_c_extractor.c_name,
+                                                       self._d_c_extractor.c_id,
+                                                       self._d_c_extractor.i_layer_ids,
+                                                       self._d_c_extractor.c_layer_ids,
+                                                       volumes=volumes)
+
+        # Reload daemon
+        code = remote_rpc_cli.reload_daemon()
+        
+        # Update application buffer read offset
+        rd = rdict(redis_cli.hgetall(app_id))
+        C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
+        S2C_info = {"direction": ScrDirection.S2C.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.S2C.value, dst_local_addr)][0]}
+        code = remote_rpc_cli.update_buf_read_offset(app_id, [C2S_info, S2C_info])
+
+        # Restore
+        code = remote_rpc_cli.restore(self._c_name, cp_name=now)
+        if code != CODE_SUCCESS:
+            return self.returned_data_creator(remote_rpc_cli.restore.__name__, code=code)
+
+        has_remove_con = self._d_cli.remove(self._c_name)
+        if has_remove_con is not True:
+            return self.returned_data_creator('send_checkpoint', code=HTTPStatus.INTERNAL_SERVER_ERROR.value)
+
+        return self.returned_data_creator('fin')
+
+    def run_cgm_for_gctc(self, app_id=0):
+        self._logger.info("run: Init RPC client")
+        remote_rpc_cli = RpcClient(dst_addr=self._m_opt['dst_addr'])
+        local_rpc_cli = RpcClient(dst_addr='127.0.0.1')
+        dst_first_packet_id =0
+        src_last_packet_id =0
+        dst_local_addr = self._m_opt['pkt_dst_addr']
+        now =  datetime.now().strftime('%s')
+        redis_cli = RedisClient()
+
+        #### src app info
+        app_info_dict = local_rpc_cli.get_app_info_dict(app_id)
+
+        #### create buffer
+        #dst_app_id = remote_rpc_cli.prepare_app_launch(app_id, app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in app_info_dict.rules])
+        dst_app_id = remote_rpc_cli.prepare_app_launch(app_id, app_info_dict.buf_loc,app_info_dict.sig_loc,[str(e) for e in ["1:/temperature/"]])
+        ### check src and dst buffer
+        print("dst_app_id  : {0}".format(dst_app_id))
+        print("check C2S packet")
+        # TODO: check behavior
+        dst_first_C2S_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.C2S.value)  #in this case packet_id
+        print(dst_first_C2S_packet_id)
+        if (not (local_rpc_cli.check_packet_arrival(app_id, dst_first_C2S_packet_id))):
+            return self.returned_data_creator('create')
+
+        # check whether last src packet is arrived at dst node
+        """ for gctc
         print("check S2C packet")
         # TODO: check behavior
         dst_first_S2C_packet_id = remote_rpc_cli.get_buf_info(dst_app_id, kind=ClientBufInfo.BUF_FIRST.value, direction=ScrDirection.S2C.value)  #in this case packet_id
@@ -312,7 +400,7 @@ class MigrationWorker:
         # Reload daemon
         code = remote_rpc_cli.reload_daemon()
         
-        """
+        """ for gctc
         # Update application buffer read offset
         rd = rdict(redis_cli.hgetall(app_id))
         C2S_info = {"direction": ScrDirection.C2S.value, "packet_id": rd["{0}.*{1}".format(ScrDirection.C2S.value, dst_local_addr)][0]}
