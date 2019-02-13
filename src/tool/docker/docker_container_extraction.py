@@ -129,6 +129,8 @@ class DockerContainerExtraction(DockerBaseApi):
         if not base_path.exists():
             base_path.mkdir()
             os.chmod(str(base_path), 0o777)
+        if (base_path/c_id).exists():
+            return True
         try:
             (base_path/c_id).mkdir(mode=0o777)
             os.chmod(str((base_path/c_id)), 0o777)
