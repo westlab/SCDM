@@ -176,7 +176,7 @@ class DockerBaseApi:
     def container_presence(self, name):
         try:
             return self._client.containers.get(name)
-        except docker.errors.ImageNotFound:
+        except docker.errors.NotFound:
             return None
 
     """

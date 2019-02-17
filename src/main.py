@@ -11,7 +11,7 @@ Rest server for Smart Community Docker Manger
 parser = argparse.ArgumentParser(description)
 parser.add_argument('program',
                     type=str,
-                    choices=('rest', 'rpc', 'codegen', 'run_prop', 'run_con', 'run_scr', 'run_multi', 'cli_soc', 'sync', 'debug'),
+                    choices=('rest', 'rpc', 'codegen', 'run_prop', 'run_con', 'run_scr', 'run_multi', 'cli_soc', 'sync', 'cp', 'debug'),
                     help='program that you want to run')
 parser.add_argument('conf',
                     type=str,
@@ -170,6 +170,24 @@ def sync():
     i = DockerLayer()
     i.execute_remapping(args.image_name)
 
+def file_cp():
+    import shutil
+
+    try:
+        while (True):
+            if docker_api.container_presence("stream_app"):
+                shutil.copyfile("/tmp/pkt_json_dump.json", "/home/miura/repos/gctc/pkt_json_dump.json")
+                print("copy...")
+                sleep(1)
+            else:
+                print('nothing...')
+                sleep(1)
+    except KeyboardInterrupt:
+        print("Get Ctrl-C")
+        print("Copy data")
+        return True
+
+
 def codegen():
     from service import codegen
     codegen.run()
@@ -193,6 +211,8 @@ if __name__ == "__main__":
         run_with_scr()
     if args.program == 'run_multi':
         run_with_multi_scrs()
+    if args.program == 'cp':
+        file_cp()
     if args.program == 'debug':
         debug()
 
