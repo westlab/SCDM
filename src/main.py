@@ -47,14 +47,15 @@ def rest_server():
 
     LoggerFactory.init()
     logger = LoggerFactory.create_logger('rest_server')
+    addr = config['rest_server']['addr']
     port = config.getint('rest_server', 'port')
     debug = config.getboolean('rest_server','debug')
 
     app = Flask(__name__)
-    # create url prefix for corresponding docker api
+    # create url prefixkkkk for corresponding docker api
     app.register_blueprint(v1, url_prefix='/v1')
     logger.info("Rest server start")
-    app.run(port=port, debug=debug, processes=3)
+    app.run(host=addr, port=port, debug=debug, processes=3)
 
 def rpc_server():
     from service import grpc_server
