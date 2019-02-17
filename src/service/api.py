@@ -55,7 +55,7 @@ def migrate(method):
         if method == 'llm':
             res = worker.run_llm()
         elif method == 'cgm':
-            res = worker.run_cgm()
+            res = worker.run_cgm_for_gctc()
         else:
             raise Exception
     except Exception as e:
